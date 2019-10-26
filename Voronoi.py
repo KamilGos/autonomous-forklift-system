@@ -10,6 +10,7 @@ class Voronoi_Class:
         self.frame_width = None
         self.frame_height = None
         self.voronoi_to_print = None
+        self.frame_points = None
 
     def Initialize(self, FPTV_FACTOR, frame_width, frame_height):
         self.FPTV_FACTOR = FPTV_FACTOR
@@ -28,6 +29,7 @@ class Voronoi_Class:
         for i in range(0, self.frame_height, self.FPTV_FACTOR):
             frame_points.append(np.array([0, i]))
             frame_points.append(np.array([self.frame_width, i]))
+        self.frame_points = frame_points
         return frame_points
 
 

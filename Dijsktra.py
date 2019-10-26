@@ -8,8 +8,12 @@ Edge = namedtuple('Edge', 'start, end, cost')
 def make_edge(start, end, cost=1):
   return Edge(start, end, cost)
 
-class Graph:
-    def __init__(self, edges):
+class Dijkstra:
+    def __init__(self):
+        print("Tworze klasę Graph")
+
+
+    def Load_Edges(self, edges):
         # let's check that the data is right
         wrong_edges = [i for i in edges if len(i) not in [2, 3]]
         if wrong_edges:
@@ -57,7 +61,7 @@ class Graph:
 
         return neighbours
 
-    def dijkstra(self, source, dest):
+    def Get_Shortest_Path(self, source, dest):
         # print("Source: ",source)
         # print("vertices: ", self.vertices)
         assert source in self.vertices, 'Such source node doesn\'t exist'
@@ -87,3 +91,17 @@ class Graph:
         if path:
             path.appendleft(current_vertex)
         return path
+
+    def Transrofm_Shortest_Path_Ids_To_Corr(self, shortest_path_ids, vor_dict):
+        corr = []
+        for id in shortest_path_ids:
+            corr.append(vor_dict.get(id))
+        return corr
+
+
+if __name__=="__main__":
+    graph = Graph([
+        ("a", "b", 7), ("a", "c", 9), ("a", "f", 14), ("b", "c", 10),
+        ("b", "d", 15), ("c", "d", 11), ("c", "f", 2), ("d", "e", 6),
+        ("e", "f", 9)])
+    print(graph.dijkstra("a", "e"))

@@ -29,6 +29,10 @@ class Ui_MainWindow(object):
         self.horizontalLayout_3.addWidget(self.pushButton_View2)
         self.pushButton_View3 = QPushButton("View 3",self.horizontalLayoutWidget)
         self.horizontalLayout_3.addWidget(self.pushButton_View3)
+        self.pushButton_View4 = QPushButton("View 4", self.horizontalLayoutWidget)
+        self.horizontalLayout_3.addWidget(self.pushButton_View4)
+        self.pushButton_View5 = QPushButton("View 5", self.horizontalLayoutWidget)
+        self.horizontalLayout_3.addWidget(self.pushButton_View5)
         self.verticalLayout2_L.addLayout(self.horizontalLayout_3)
         self.horizontalLayout1.addLayout(self.verticalLayout2_L,2)
         spacerItem = QSpacerItem(10, 0, QSizePolicy.Expanding, QSizePolicy.Minimum)
@@ -71,9 +75,9 @@ class Ui_MainWindow(object):
 
         self.verticalLayout2_P.addLayout(self.formLayout_2PU)
 
-        self.pushButton_Wyznacz_Trajektorie = QPushButton("GO", self.horizontalLayoutWidget)
+        self.pushButton_GO = QPushButton("GO", self.horizontalLayoutWidget)
 
-        self.verticalLayout2_P.addWidget(self.pushButton_Wyznacz_Trajektorie)
+        self.verticalLayout2_P.addWidget(self.pushButton_GO)
 
 
         self.horizontalLayout1.addLayout(self.verticalLayout2_P,1)
