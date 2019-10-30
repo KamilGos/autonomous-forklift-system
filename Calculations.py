@@ -1,10 +1,8 @@
 import numpy as np
 import cv2
-import cv2.aruco as aruco
 import math
 from scipy.spatial import distance
-import copy
-import matplotlib.pyplot as plt
+
 
 
 
@@ -54,17 +52,18 @@ class Calculations:
 
     # function return id's of *start* and *stop* points
     def Get_Ids_From_Coordinates(self, vor_dict, Rob_center, Aim_center):
-        Rob_center = list(Rob_center)
-        Aim_center = list(Aim_center)
+        print("IN", Rob_center, Aim_center)
         id_Rob_center = None
         id_Aim_center = None
         for id in vor_dict:
-            if vor_dict[id] == Rob_center:
+            if vor_dict[id][0] == Rob_center[0] and vor_dict[id][1] == Rob_center[1]:
                 id_Rob_center = id
-            if vor_dict[id] == Aim_center:
+            if vor_dict[id][0] == Aim_center[0] and vor_dict[id][1] == Aim_center[1]:
                 id_Aim_center = id
 
+        #Jeśli wczesniej nie wystąpiło to musimy szukac najbliższego
         if id_Rob_center == None:
+            print("Wchodze do id_rob_center")
             distance_tmp = None
             min_distance = float("inf")
             min_distance_id = None
@@ -76,15 +75,16 @@ class Calculations:
             id_Rob_center = min_distance_id
 
         if id_Aim_center == None:
+            print("Wchodze do id_aim_center")
             distance_tmp = None
             min_distance = float("inf")
             min_distance_id = None
             for id in vor_dict:
-                distance_tmp = int(distance.euclidean(Rob_center, vor_dict[id]))
+                distance_tmp = int(distance.euclidean(Aim_center, vor_dict[id]))
                 if distance_tmp < min_distance:
                     min_distance = distance_tmp
                     min_distance_id = id
-            id_Rob_center = min_distance_id
+            id_Aim_center = min_distance_id
 
         return id_Rob_center, id_Aim_center
 
@@ -103,3 +103,69 @@ class Calculations:
                               " from obstacle")
                         return False
         return True
+
+    # Function return touple with centers of qr codes using moments method
+    # corners - list of detected markers corners
+    def Get_Centers_Of_Corners(self, corners):
+        centers = []
+        for c in corners:
+            M = cv2.moments(c)
+            cX = int(M["m10"] / M["m00"])
+            cY = int(M["m01"] / M["m00"])
+            centers.append((cX, cY))
+        return centers
+
+    # Return distance from center of aruco code to another point
+    def Calculate_Distance_RA(self,Rob, Aim):
+        Rob_center = self.Get_Centers_Of_Corners(np.array([Rob]))
+        return int(distance.euclidean(Rob_center, Aim))
+
+        # Calculate angle between Robot and Aim (eg. next point). It return this angle and direction 1-left, 0-right
+
+    # It determine angle of vector define by X and Y to X axis
+    def Determine_Angle_XY(self, X, Y):
+        if X == 0: X = 0.001
+        if Y == 0: Y = 0.001
+
+        if X > 0 and Y < 0:  # I ćwiartka
+            angle = -1 * np.rad2deg(math.atan(Y / X))
+            # print("1 ćwiartka")
+        elif X < 0 and Y < 0:  # II ćwiartka
+            angle = 180 - np.rad2deg(math.atan(Y / X))
+            # print("2 ćwiartka")
+        elif X < 0 and Y > 0:  # III ćwiartka
+            angle = 180 + (-1 * np.rad2deg(math.atan(Y / X)))
+            # print("3 ćwiartka")
+        elif X > 0 and Y > 0:  # IV ćwiartka
+            angle = 360 - np.rad2deg(math.atan(Y / X))
+            # print("4 ćwiartka")
+        return angle
+
+
+    # Rob - corners of aruco marker which define robot
+    # Aim - point (x,y) which is aim
+    def Calculate_Angle_RA(self, Rob, Aim):
+        X = Rob[0][0] - Rob[3][0]
+        Y = Rob[0][1] - Rob[3][1]
+        Rob_angle = self.Determine_Angle_XY(X, Y)
+        # print("Robot angle= ", Rob_angle)
+        # Calculate aim angle
+        Rob_center = self.Get_Centers_Of_Corners(np.array([Rob]))
+
+        X = Aim[0] - Rob_center[0][0]
+        Y = Aim[1] - Rob_center[0][1]
+        Aim_angle = self.Determine_Angle_XY(X, Y)
+        # print("Aim angle= ", Aim_angle)
+
+        if Aim_angle > Rob_angle:
+            if (Aim_angle - Rob_angle) <= 180:
+                return abs(int(Aim_angle - Rob_angle)), 1  # go left
+            else:
+                return abs(int(Aim_angle - Rob_angle)), 0  # go right
+        elif Aim_angle < Rob_angle:
+            if (Rob_angle - Aim_angle) <= 180:
+                return abs(int(Rob_angle - Aim_angle)), 0  # go right
+            else:
+                return abs(int(Rob_angle - Aim_angle)), 1  # go left
+
+

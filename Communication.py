@@ -8,22 +8,30 @@ class Communication:
         self.port = None
         self.baudrate = None
         self.Serial = None
+        self.initializated = False
 
     def Initialize(self, PORT, BAUDRATE):
+        print("+++ Inicjalizacja komunikacji")
         self.port = PORT
         self.baudrate = BAUDRATE
         try:
             self.Serial = serial.Serial(self.port, self.baudrate)
         except:
             print("Can't open serial port: ", self.port)
+            self.initializated = False
+            return 0
 
         if (self.Serial.isOpen() == False):
             self.Serial.open()
             print("Serial open")
+            self.initializated = True
         else:
             print("Serial is already open")
+            self.initializated = True
         if (self.Serial.isOpen() == False):
             print("I cant open serial {}".format(PORT))
+            self.initializated = False
+            return 0
 
         print("Serial id: {}".format(self.Serial))
 
@@ -97,7 +105,7 @@ class Communication:
             self.Show_Log("send_take_pallet", sys.exc_info())
 
     # Function send command to put pallet on Lvl level
-    def send_put_pallet(self, Lvl):
+    def Send_Put_Pallet(self, Lvl):
         if Lvl < 0 or Lvl > 3:
             self.Show_Log("send_put_pallet", "Wyrano nieprawidłowy poziom (0<=Poziom<=3")
             FRAME = self.Make_Frame_To_Send(4, Lvl)  # 4-take pallet
@@ -109,7 +117,7 @@ class Communication:
         except:
             self.Show_Log("send_put_pallet", sys.exc_info())
 
-    def read_data_from_robot(self):
+    def Read_Data_From_Robot(self):
         read_data = None
         self.Serial.flushInput()
         while read_data == None:

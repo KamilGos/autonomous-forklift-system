@@ -9,8 +9,8 @@ class Camera:
         self.cam_num = cam_num
         self.cap = None
         self.frame = np.zeros((1,1))
-        self.height = None
-        self.width = None
+        self.height = 318
+        self.width  = 452
         self.initialized = False
         self.aruco_dict = aruco.Dictionary_get(aruco.DICT_4X4_50)
         self.aruco_parameters = aruco.DetectorParameters_create()
@@ -20,16 +20,18 @@ class Camera:
         self.MARKERS_VAL = 3
 
     def Initialize(self):
-        self.cap = cv2.VideoCapture(self.cam_num)
-        if (self.cap.isOpened() == False):
-            print("Kamera nieosiagalna")
-            self.initialized = False
-        else:
-            self.initialized = True
-            _, self.frame = self.cap.read()
-            self.height, self.width, _ = self.frame.shape  # get size of picture
+        if self.initialized == False:
+            print("Initialize camera")
+            self.cap = cv2.VideoCapture(self.cam_num)
+            if (self.cap.isOpened() == False):
+                print("Kamera nieosiagalna")
+                self.initialized = False
+            else:
+                self.initialized = True
+                _, self.frame = self.cap.read()
 
     def close_camera(self):
+        print("CAMERA CLOSED")
         self.cap.release()
         self.initialized = False
 
@@ -42,20 +44,46 @@ class Camera:
     def get_frame_while(self):
         ids_number = 0
         while ids_number != self.MARKERS_VAL:
-            frame = self.get_frame()  # pobieram ramki dopóki nie znajdzie wszystkich aruco
-            corners, ids, _ = aruco.detectMarkers(frame, self.aruco_dict, parameters=self.parameters)
+            self.frame = self.get_frame()  # pobieram ramki dopóki nie znajdzie wszystkich aruco
+            corners, ids, _ = aruco.detectMarkers(self.frame, self.aruco_dict, parameters=self.aruco_parameters)
             if np.all(ids != None):
                 ids_number = len(ids)
                 if ids_number != self.MARKERS_VAL: print("No enough markers. Is: ", ids_number, "  SB: ", self.MARKERS_VAL)
-        return frame, corners, ids
+        return self.frame, corners, ids
 
     def Detect_Markers(self, frame):
         corners, ids, _ = aruco.detectMarkers(frame, self.aruco_dict, parameters=self.aruco_parameters)
         return corners, ids
 
+    def Detect_Markers_Self(self):
+        corners, ids, _ = aruco.detectMarkers(self.frame, self.aruco_dict, parameters=self.aruco_parameters)
+        return self.frame, corners, ids
+
+    def Get_Frame_And_Detect(self):
+        self.get_frame()
+        corners, ids = self.Detect_Markers(self.frame)
+        return self.frame, corners, ids
+
     def Print_Detected_Markers(self, frame, corners, ids):
         frame = aruco.drawDetectedMarkers(frame, corners, ids)
         return frame
+
+    def Print_Full_Road_On_Frame(self, frame,FULL_road, DONE_road):
+        #Print Points
+        frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
+        for point in FULL_road:
+            cv2.circle(frame, tuple(point), 2, (255,0,0),2)
+        #Print Lines
+        for i in range(0,len(FULL_road)-1):
+            cv2.line(frame, tuple(FULL_road[i]), tuple(FULL_road[i+1]), (255,0,0), 1)
+        for point in DONE_road:
+            cv2.circle(frame, tuple(point), 2, (0,255,0),2)
+        if len(DONE_road)>1:
+            for i in range(0, len(DONE_road) - 1):
+                cv2.line(frame, tuple(DONE_road[i]), tuple(DONE_road[i + 1]), (0, 255, 0), 2)
+
+        return frame
+
 
 
     def __str__(self):
@@ -78,10 +106,11 @@ class VideoStreem_View1_Thread(QThread):
         while self.runperm:
             self.frame = self.cam.get_frame()
             self.sig_View1_Thread_frame.emit(self.frame)
-            self.msleep(50)
+            self.msleep(100)
         if self.runperm == False:
-            self.cam.close_camera()
-            cv2.destroyAllWindows()
+            # self.cam.close_camera()
+            # cv2.destroyAllWindows()
+            print("Stop View1Thread")
             self.exit(0)
 
 
@@ -101,10 +130,11 @@ class VideoStreem_View2_Thread(QThread):
             if np.all(ids!=None):
                 self.frame = self.cam.Print_Detected_Markers(self.frame, corners, ids)
             self.sig_View2_Thread_frame.emit(self.frame)
-            self.msleep(50)
+            self.msleep(100)
         if self.runperm == False:
-            self.cam.close_camera()
-            cv2.destroyAllWindows()
+            # self.cam.close_camera()
+            # cv2.destroyAllWindows()
+            print("Stop View2Thread")
             self.exit(0)
 
 

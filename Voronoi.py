@@ -1,5 +1,7 @@
 import scipy
-import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('TkAgg')
+from matplotlib import pyplot as plt
 import numpy as np
 from scipy.spatial import distance
 
@@ -13,6 +15,7 @@ class Voronoi_Class:
         self.frame_points = None
 
     def Initialize(self, FPTV_FACTOR, frame_width, frame_height):
+        print("+++ Inicjalizacja Voronoi")
         self.FPTV_FACTOR = FPTV_FACTOR
         self.frame_width = frame_width
         self.frame_height = frame_height
@@ -120,6 +123,8 @@ class Voronoi_Class:
     def Create_Voronoi_Graph(self, corners, obstacles):
         points_to_voronoi = self.Corners_To_Voronoi(corners)
         calculated_voronoi, clean_vertices = self.Calculate_Voronoi(points_to_voronoi)
+        # self.Plot_Voronoi_Diagram()
+
         removed_points_ids = self.Get_Points_Ids_From_Obstacles(calculated_voronoi, obstacles)
         calculated_voronoi_dictionary = self.Create_Dictionary(calculated_voronoi, removed_points_ids)
         return self.Calculate_Distances_And_Make_Graph_Input(clean_vertices, calculated_voronoi_dictionary, removed_points_ids), calculated_voronoi_dictionary
