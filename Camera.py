@@ -68,19 +68,24 @@ class Camera:
         frame = aruco.drawDetectedMarkers(frame, corners, ids)
         return frame
 
-    def Print_Full_Road_On_Frame(self, frame,FULL_road, DONE_road):
-        #Print Points
+    def Print_Full_Road_On_Frame(self, frame, deleted_points, FULL_road, DONE_road):
         frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
         for point in FULL_road:
             cv2.circle(frame, tuple(point), 2, (255,0,0),2)
-        #Print Lines
         for i in range(0,len(FULL_road)-1):
             cv2.line(frame, tuple(FULL_road[i]), tuple(FULL_road[i+1]), (255,0,0), 1)
+
         for point in DONE_road:
             cv2.circle(frame, tuple(point), 2, (0,255,0),2)
         if len(DONE_road)>1:
             for i in range(0, len(DONE_road) - 1):
                 cv2.line(frame, tuple(DONE_road[i]), tuple(DONE_road[i + 1]), (0, 255, 0), 2)
+
+        for point in deleted_points:
+            cv2.circle(frame, tuple(point), 2, (252, 223, 3), 2)
+        if len(deleted_points)>1:
+            for i in range(0, len(deleted_points) - 1):
+                cv2.line(frame, tuple(deleted_points[i]), tuple(deleted_points[i + 1]), (252, 223, 3), 2)
 
         return frame
 
