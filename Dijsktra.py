@@ -100,6 +100,7 @@ class Dijkstra:
 
 if __name__=="__main__":
     edges =[("a", "b", 7), ("a", "c", 9),("a", "f", 14), ("b", "c", 10), ("b", "d", 15), ("c", "d", 11), ("c", "f", 2), ("d", "e", 6),("e", "f", 9)]
+    edges2 = [("a", "b", 7), ("a", "c", 9), ("g", "f", 14)]
     Dijkstra = Dijkstra()
     Dijkstra.Load_Edges(edges)
-    print(Dijkstra.Get_Shortest_Path("a", "e"))
+    print(Dijkstra.Get_Shortest_Path("a", "f"))

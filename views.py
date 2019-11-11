@@ -1,5 +1,5 @@
-from PyQt5.QtCore import Qt, QThread, QTimer, QRect, QMetaObject, QCoreApplication, pyqtSignal
-from PyQt5.QtWidgets import QMainWindow, QDialog, QWidget,QSpinBox, QAbstractItemView, QTableWidgetItem, QHeaderView, QLineEdit,QTableWidget, QSpacerItem, QFrame, QProgressBar,  QPushButton,QFormLayout, QVBoxLayout, QApplication, QSlider, QHBoxLayout, QMenuBar, QMenu, QAction, QLabel, QSizePolicy, QTextBrowser
+from PyQt5.QtCore import Qt, QThread, QTimer, QRect, QMetaObject, QCoreApplication, pyqtSignal, QTimer, QTime
+from PyQt5.QtWidgets import QMainWindow, QDialog, QLCDNumber, QWidget,QSpinBox, QAbstractItemView, QTableWidgetItem, QHeaderView, QLineEdit,QTableWidget, QSpacerItem, QFrame, QProgressBar,  QPushButton,QFormLayout, QVBoxLayout, QApplication, QSlider, QHBoxLayout, QMenuBar, QMenu, QAction, QLabel, QSizePolicy, QTextBrowser
 from PyQt5.QtGui import QImage, QColor, QFont
 from pyqtgraph import ImageView
 
@@ -36,6 +36,19 @@ class Ui_MainWindow(object):
         spacerItem = QSpacerItem(10, 0, QSizePolicy.Expanding, QSizePolicy.Minimum)
         self.horizontalLayout1.addItem(spacerItem)
         self.verticalLayout2_P = QVBoxLayout()
+
+        self.LCDNumber = QLCDNumber(self.horizontalLayoutWidget)
+        self.LCDNumber.setSegmentStyle(QLCDNumber.Flat)
+
+        self.LCDNumber.setMinimumHeight(60)
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.ShowTime)
+        self.timer.start(1000)
+        self.ShowTime()
+
+        self.verticalLayout2_P.addWidget(self.LCDNumber)
+
+
         self.formLayout_2PU = QFormLayout()
         self.Enter_robot_id_label = QLabel(self.horizontalLayoutWidget)
         font = QFont()
@@ -85,6 +98,8 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout2_P_Table = QHBoxLayout(self.horizontalLayoutWidget)
 
+        self.verticalLayout2_P_Left_Tables = QVBoxLayout(self.horizontalLayoutWidget)
+
         self.tableWidget = QTableWidget(self.horizontalLayoutWidget)
         self.tableWidget.setColumnCount(2)
         self.tableWidget.setRowCount(3)
@@ -111,7 +126,7 @@ class Ui_MainWindow(object):
         self.tableWidget.setHorizontalHeaderItem(1, item)
         self.tableWidget.setColumnWidth(0, 80)
         self.tableWidget.setColumnWidth(1, 100)
-        self.horizontalLayout2_P_Table.addWidget(self.tableWidget)
+        self.verticalLayout2_P_Left_Tables.addWidget(self.tableWidget)
         self.tableWidget.setItem(0, 0, QTableWidgetItem("Camera"))
         self.tableWidget.setItem(1, 0, QTableWidgetItem("Serial"))
         self.tableWidget.setItem(2, 0, QTableWidgetItem("Guide"))
@@ -119,11 +134,57 @@ class Ui_MainWindow(object):
         self.tableWidget.setItem(1, 1, QTableWidgetItem("No initialized"))
         self.tableWidget.setItem(2, 1, QTableWidgetItem("No initialized"))
 
-        ## TABLE 2
+
+        # TABLE 3 (magazine)
+
+        self.Table3_Title = QLabel(self.horizontalLayoutWidget)
+        font = QFont()
+        font.setPointSize(9)
+        font.setWeight(75)
+        self.Table3_Title.setFont(font)
+        self.verticalLayout2_P_Left_Tables.addWidget(self.Table3_Title)
+
+        self.tableWidget3 = QTableWidget(self.horizontalLayoutWidget)
+        self.tableWidget3.setColumnCount(2)
+        self.tableWidget3.setRowCount(3)
+        self.tableWidget3.verticalHeader().hide()
+        self.tableWidget3.horizontalHeader().setStretchLastSection(True)
+        self.tableWidget3.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.tableWidget3.verticalHeader().setResizeMode(QHeaderView.ResizeToContents)
+        # self.tableWidget.verticalHeader().setStretchLastSection(True)
+        item = QTableWidgetItem()
+        item.setText("Level")
+        font = QFont()
+        font.setPointSize(10)
+        font.setBold(True)
+        font.setWeight(75)
+        item.setFont(font)
+        self.tableWidget3.setHorizontalHeaderItem(0, item)
+        item = QTableWidgetItem()
+        item.setText("Status")
+        font = QFont()
+        font.setPointSize(10)
+        font.setBold(True)
+        font.setWeight(75)
+        item.setFont(font)
+        self.tableWidget3.setHorizontalHeaderItem(1, item)
+        self.tableWidget3.setColumnWidth(0, 80)
+        self.tableWidget3.setColumnWidth(1, 100)
+        self.verticalLayout2_P_Left_Tables.addWidget(self.tableWidget3)
+        self.tableWidget3.setItem(0, 0, QTableWidgetItem("0"))
+        self.tableWidget3.setItem(1, 0, QTableWidgetItem("1"))
+        self.tableWidget3.setItem(2, 0, QTableWidgetItem("2"))
+        self.tableWidget3.setItem(0, 1, QTableWidgetItem("Empty"))
+        self.tableWidget3.setItem(1, 1, QTableWidgetItem("Empty"))
+        self.tableWidget3.setItem(2, 1, QTableWidgetItem("Empty"))
+
+        self.horizontalLayout2_P_Table.addLayout(self.verticalLayout2_P_Left_Tables)
+
+        ## TABLE 2 (right)
 
         self.tableWidget2 = QTableWidget(self.horizontalLayoutWidget)
         self.tableWidget2.setColumnCount(2)
-        self.tableWidget2.setRowCount(4)
+        self.tableWidget2.setRowCount(6)
         self.tableWidget2.verticalHeader().hide()
         self.tableWidget2.horizontalHeader().setStretchLastSection(True)
         self.tableWidget2.setEditTriggers(QAbstractItemView.NoEditTriggers)
@@ -152,10 +213,16 @@ class Ui_MainWindow(object):
         self.tableWidget2.setItem(1, 0, QTableWidgetItem("Serial Port"))
         self.tableWidget2.setItem(2, 0, QTableWidgetItem("Baudrate"))
         self.tableWidget2.setItem(3, 0, QTableWidgetItem("FPTV"))
+        self.tableWidget2.setItem(4, 0, QTableWidgetItem("Goals"))
+        self.tableWidget2.setItem(5, 0, QTableWidgetItem("Phase"))
+
         self.tableWidget2.setItem(0, 1, QTableWidgetItem(""))
         self.tableWidget2.setItem(1, 1, QTableWidgetItem(""))
         self.tableWidget2.setItem(2, 1, QTableWidgetItem(""))
         self.tableWidget2.setItem(3, 1, QTableWidgetItem(""))
+        self.tableWidget2.setItem(4, 1, QTableWidgetItem(""))
+        self.tableWidget2.setItem(5, 1, QTableWidgetItem(""))
+
 
 
         spacerItem4 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
@@ -188,6 +255,12 @@ class Ui_MainWindow(object):
         self.retranslateUi(MainWindow)
         QMetaObject.connectSlotsByName(MainWindow)
 
+    def ShowTime(self):
+        time = QTime.currentTime()
+        text = time.toString('hh:mm')
+        if (time.second() % 2) == 0:
+            text = text[:2] + ' ' + text[3:]
+        self.LCDNumber.display(text)
 
     def retranslateUi(self, MainWindow):
         _translate = QCoreApplication.translate
@@ -198,6 +271,8 @@ class Ui_MainWindow(object):
         self.Enter_pallet_id_label.setText(_translate("MainWindow", "Enter pallet id:"))
         self.Select_pallet_id_button.setText(_translate("MainWindow", "Select"))
         self.Table1_Title .setText(_translate("MainWindow", "            Module statuses                                Paremeters"))
+        self.Table3_Title .setText(_translate("MainWindow", "                 Warehouse"))
+
         # self.Table2_Title .setText(_translate("MainWindow", "Parameters"))
 
 

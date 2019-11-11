@@ -9,7 +9,7 @@ from views import Ui_MainWindow, Ui_New_FPTV_value_Window
 
 import Camera
 import Guide
-
+import Warehouse
 
 
 class Main_function(QMainWindow, Ui_MainWindow):
@@ -24,6 +24,7 @@ class Main_function(QMainWindow, Ui_MainWindow):
         self.id_aim = None
         self.id_aim_selected = False
         self.id_pallet = None
+        self.id_warehouse = 26
         self.pallet_id_selected = False
         self.markers_number = None
         self.FPTV = 25
@@ -63,6 +64,15 @@ class Main_function(QMainWindow, Ui_MainWindow):
                 self.markers_number = len(ids)
                 self.camera.frame= self.camera.Print_Detected_Markers(self.camera.frame, corners, ids)
                 cv2.putText(self.camera.frame, "Real view", (70,70), cv2.FONT_HERSHEY_SIMPLEX, 2, (0,0,255),2)
+
+
+                # cv2.circle(self.camera.frame, (366,0), 2, (252, 223, 3), 2)
+                # cv2.circle(self.camera.frame, (450, 0), 2, (252, 223, 3), 2)
+                # cv2.circle(self.camera.frame, (450,88), 2, (252, 223, 3), 2)
+                # cv2.circle(self.camera.frame, (366,88), 2, (252, 223, 3), 2)
+
+
+
                 self.update_View(self.camera.frame)
             else:
                 cv2.putText(self.camera.frame, "!No Markers Detected!", (70,70), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255),2)
@@ -196,10 +206,8 @@ class Main_function(QMainWindow, Ui_MainWindow):
         if self.PalletizationisRunning == False:
             self.pushButton_GO.setText("STOP")
             self.pushButton_GO.setStyleSheet("background-color: #A9F5A9")
-
             self.id_aim = self.id_pallet
             if self.guideinitialized == False:
-                print("ININNNNIIN")
                 self.guide = Guide.Guide(self.camera, self.FPTV, self.PORT, self.BAUDRATE)
                 if self.guide.guide_ready == True:
                     self.guideinitialized = True
@@ -226,6 +234,15 @@ class Main_function(QMainWindow, Ui_MainWindow):
         else:
             self.PalletizationisRunning = False
             self.PalletizaionThread.runperm = False
+            self.PalletizaionThread.terminate()
+            self.guide.communication.Serial.close()
+            del self.guide
+            self.guideinitialized = False
+            self.tableWidget.item(1, 1).setText("No initialized")
+            self.tableWidget.item(2, 1).setText("No initialized")
+            self.tableWidget.item(1, 1).setBackground(QColor(255, 255, 255))
+            self.tableWidget.item(2, 1).setBackground(QColor(255, 255, 255))
+
             self.ProgressBar.setValue(0)
             self.pushButton_GO.setText("START")
             self.pushButton_GO.setStyleSheet("background-color: DEFAULT <later on>")
@@ -267,12 +284,6 @@ class Main_function(QMainWindow, Ui_MainWindow):
         self.FPTV_dialog = Ui_New_FPTV_value_Window(self)
         self.FPTV_dialog.show()
         self.FPTV_dialog.sig_Change_FPTV.connect(self.UpdateFPTV)
-
-        # self.Change_FPTV_window = QMainWindow()
-        # self.ui = Ui_New_FPTV_value_Window()
-        # self.ui.setupUi(self.Change_FPTV_window)
-        # # self.ui.sig_Change_FPTV.connect(self.UpdateFPTV)
-        # self.Change_FPTV_window.show()
 
     def UpdateFPTV(self, value):
         self.FPTV = value

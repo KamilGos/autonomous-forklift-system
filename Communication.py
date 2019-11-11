@@ -4,13 +4,14 @@ import time
 
 class Communication:
     def __init__(self):
-        print("Tworzę klasę Comminication")
+        print("Tworzę klasę Communication")
         self.port = None
         self.baudrate = None
         self.Serial = None
         self.initializated = False
 
     def Initialize(self, PORT, BAUDRATE):
+        self.Serial = None
         print("+++ Inicjalizacja komunikacji")
         self.port = PORT
         self.baudrate = BAUDRATE
@@ -18,8 +19,10 @@ class Communication:
             self.Serial = serial.Serial(self.port, self.baudrate)
         except:
             print("Can't open serial port: ", self.port)
-            self.initializated = False
-            return 0
+            if type(self.Serial) is type(None):
+                print("nonetype")
+                self.initializated = False
+                return 0
 
         if (self.Serial.isOpen() == False):
             self.Serial.open()
@@ -95,7 +98,7 @@ class Communication:
     def Send_Take_Pallet(self, Lvl):
         if Lvl < 0 or Lvl > 3:
             self.Show_Log("send_take_pallet", "Wyrano nieprawidłowy poziom (0<=Poziom<=3")
-            FRAME = self.Make_Frame_To_Send(4, Lvl)  # 4-take pallet
+        FRAME = self.Make_Frame_To_Send(4, Lvl)  # 4-take pallet
         try:
             self.Serial.write(FRAME.encode())
             print("--- Sent: Take pallet from level ", str(Lvl), " ---")
@@ -108,7 +111,7 @@ class Communication:
     def Send_Put_Pallet(self, Lvl):
         if Lvl < 0 or Lvl > 3:
             self.Show_Log("send_put_pallet", "Wyrano nieprawidłowy poziom (0<=Poziom<=3")
-            FRAME = self.Make_Frame_To_Send(4, Lvl)  # 4-take pallet
+        FRAME = self.Make_Frame_To_Send(4, Lvl)  # 4-take pallet
         try:
             self.Serial.write(FRAME.encode())
             print("--- Sent: Put pallet on level ", str(Lvl), "  ---")
@@ -135,3 +138,4 @@ if __name__=="__main__":
     Comm.Initialize("COM14", 9600)
     Comm.Send_Go_Straight(100)
     Comm.Send_Rotate(30,1)
+    Comm.Send_Take_Pallet(1)

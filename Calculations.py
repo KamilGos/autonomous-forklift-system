@@ -10,6 +10,8 @@ class Calculations:
     def __init__(self):
         print("Tworzę klasę Calculations")
 
+    def __del__(self):
+        print("usuwam Calculations")
     # function delete one not needed dimension, change elements type on int and reverse elements
     # corners - list of corners to change
     def Easy_Corners_And_Ids(self, corners, ids):
@@ -43,16 +45,22 @@ class Calculations:
         return centers[0], centers[1]
 
     # Function get corners which are obstacles (all corners except of robot and goal
-    def Get_Obstacles_Corners(self, id_robot, id_aim, dict):
+    def Get_Obstacles_Corners(self, id_robot, id_aim, id_pallet, dict):
         obstacles = []
-        for dic in dict:
-            if dic != str(id_robot) and dic != str(id_aim):
-                obstacles.append(dict[dic])
-        return obstacles
+
+        if id_aim == id_pallet:
+            for dic in dict:
+                if dic != str(id_robot) and dic != str(id_aim):
+                    obstacles.append(dict[dic])
+            return obstacles
+        else: #Celem jest magazyn
+            for dic in dict:
+                if dic != str(id_robot) and dic != str(id_aim) and dic != str(id_pallet):
+                    obstacles.append(dict[dic])
+            return obstacles
 
     # function return id's of *start* and *stop* points
     def Get_Ids_From_Coordinates(self, vor_dict, Rob_center, Aim_center):
-        print("IN", Rob_center, Aim_center)
         id_Rob_center = None
         id_Aim_center = None
         for id in vor_dict:
@@ -63,7 +71,6 @@ class Calculations:
 
         #Jeśli wczesniej nie wystąpiło to musimy szukac najbliższego
         if id_Rob_center == None:
-            print("Wchodze do id_rob_center")
             distance_tmp = None
             min_distance = float("inf")
             min_distance_id = None
@@ -75,7 +82,6 @@ class Calculations:
             id_Rob_center = min_distance_id
 
         if id_Aim_center == None:
-            print("Wchodze do id_aim_center")
             distance_tmp = None
             min_distance = float("inf")
             min_distance_id = None
@@ -88,20 +94,43 @@ class Calculations:
 
         return id_Rob_center, id_Aim_center
 
-    # It check if found trajectory is safe by checking if evry point from this path is not closer do
+
+    def Get_Ids_Of_Bad_Points_From_Coordinates(self, vor_dict, Point):
+        point_ids = []
+        for id in vor_dict:
+            if int(vor_dict[id][0]) == int(Point[0]) and int(vor_dict[id][1]) == int(Point[1]):
+                point_ids.append(id)
+        return point_ids
+
+    #It delete every edge where is point_id
+    def Delete_Point_From_Graph(self, graph, point_ids):
+        new_graph = []
+        for edge in graph:
+            FLAG = True
+            for point_id in point_ids:
+                if int(edge[0])==int(point_id) or int(edge[1])==int(point_id):
+                    print("Usuwam krawędź: ", edge)
+                    FLAG = False
+            if FLAG == True:
+                new_graph.append(edge)
+        return new_graph
+
+
+    # It check if found trajectory is safe by checking if every point from this path is not closer to
     # frame or some obstacle then range
-    def Check_If_Path_Is_Safe(self, shortest_path_corr, boundary, obstacles, range):
+    def Check_If_Path_Is_Safe(self, shortest_path_corr, robot_center, boundary, obstacles, range):
         for path in shortest_path_corr:
-            for point in boundary:
-                if distance.euclidean(tuple(path), tuple(point)) < range:
-                    print("Point ", path, "is only ", int(distance.euclidean(tuple(path), tuple(point))), " from frame")
-                    return False
-            for obs in obstacles:
-                for point in obs:
+            if tuple(path)!=robot_center:
+                for point in boundary:
                     if distance.euclidean(tuple(path), tuple(point)) < range:
-                        print("Point ", path, "is only ", int(distance.euclidean(tuple(path), tuple(point))),
-                              " from obstacle")
-                        return False
+                        print("Point ", path, "is only ", int(distance.euclidean(tuple(path), tuple(point))), " from frame")
+                        return False, path
+                for obs in obstacles:
+                    for point in obs:
+                        if distance.euclidean(tuple(path), tuple(point)) < range:
+                            print("Point ", path, "is only ", int(distance.euclidean(tuple(path), tuple(point))),
+                                  " from obstacle")
+                            return False, path
         return True
 
     # Function return touple with centers of qr codes using moments method
@@ -148,24 +177,27 @@ class Calculations:
         X = Rob[0][0] - Rob[3][0]
         Y = Rob[0][1] - Rob[3][1]
         Rob_angle = self.Determine_Angle_XY(X, Y)
-        # print("Robot angle= ", Rob_angle)
-        # Calculate aim angle
         Rob_center = self.Get_Centers_Of_Corners(np.array([Rob]))
 
         X = Aim[0] - Rob_center[0][0]
         Y = Aim[1] - Rob_center[0][1]
         Aim_angle = self.Determine_Angle_XY(X, Y)
-        # print("Aim angle= ", Aim_angle)
-
         if Aim_angle > Rob_angle:
             if (Aim_angle - Rob_angle) <= 180:
                 return abs(int(Aim_angle - Rob_angle)), 1  # go left
             else:
-                return abs(int(Aim_angle - Rob_angle)), 0  # go right
+                return abs(int((360 - Aim_angle) + Rob_angle)), 0  # go right
         elif Aim_angle < Rob_angle:
             if (Rob_angle - Aim_angle) <= 180:
                 return abs(int(Rob_angle - Aim_angle)), 0  # go right
             else:
-                return abs(int(Rob_angle - Aim_angle)), 1  # go left
+                return abs(int((360 - Rob_angle) + Aim_angle)), 1  # go left
 
-
+    #It check which point is the one before last
+    def Check_Last_Point(self, path):
+        max_distance = 20
+        path = path[::-1]
+        for i in range(0, len(path)-1):
+            dist = distance.euclidean(path[i],path[i+1])
+            if dist > max_distance:
+                return i

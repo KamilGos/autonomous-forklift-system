@@ -9,8 +9,12 @@ class Camera:
         self.cam_num = cam_num
         self.cap = None
         self.frame = np.zeros((1,1))
-        self.height = 318
-        self.width  = 452
+        self.left = 85
+        self.right = 538
+        self.top = 86
+        self.bottom = 403
+        self.height = self.bottom-self.top
+        self.width  = self.right-self.left
         self.initialized = False
         self.aruco_dict = aruco.Dictionary_get(aruco.DICT_4X4_50)
         self.aruco_parameters = aruco.DetectorParameters_create()
@@ -18,6 +22,12 @@ class Camera:
         self.aruco_parameters.polygonalApproxAccuracyRate = 0.03
         self.aruco_parameters.minMarkerPerimeterRate = 0.04
         self.MARKERS_VAL = 3
+        # self.Warehouse_corners = np.array([[[366,0],[450,0],[450,88],[366,88]]])
+        self.Warehouse_corners = np.array([[[390,40],[420,40],[420,70],[390,70]]])
+        self.pts1 = np.float32([[85, 86], [538, 86], [538, 403], [85, 403]])
+        self.pts2 = np.float32([[0, 0], [453,0], [453, 317], [0, 317]])
+        self.TransformMatrix=cv2.getPerspectiveTransform(self.pts1, self.pts2)
+
 
     def Initialize(self):
         if self.initialized == False:
@@ -37,7 +47,8 @@ class Camera:
 
     def get_frame(self):
         _,self.frame = self.cap.read()
-        self.frame = self.frame[85:403, 80:532]
+        #self.frame = cv2.warpPerspective(self.frame, self.TransformMatrix, (453, 317))
+        self.frame = self.frame[self.top:self.bottom, self.left:self.right]
         self.frame = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
         return self.frame
 
@@ -45,18 +56,26 @@ class Camera:
         ids_number = 0
         while ids_number != self.MARKERS_VAL:
             self.frame = self.get_frame()  # pobieram ramki dopóki nie znajdzie wszystkich aruco
-            corners, ids, _ = aruco.detectMarkers(self.frame, self.aruco_dict, parameters=self.aruco_parameters)
+            corners, ids = self.Detect_Markers(self.frame)
             if np.all(ids != None):
                 ids_number = len(ids)
                 if ids_number != self.MARKERS_VAL: print("No enough markers. Is: ", ids_number, "  SB: ", self.MARKERS_VAL)
+
         return self.frame, corners, ids
 
     def Detect_Markers(self, frame):
         corners, ids, _ = aruco.detectMarkers(frame, self.aruco_dict, parameters=self.aruco_parameters)
+        # corners.append(self.Warehouse_corners)
+        # ids = np.append(ids, [26])
+        for point in self.Warehouse_corners[0]:
+            cv2.circle(self.frame, tuple(point), 2, (252, 223, 3), 2)
+
         return corners, ids
 
     def Detect_Markers_Self(self):
-        corners, ids, _ = aruco.detectMarkers(self.frame, self.aruco_dict, parameters=self.aruco_parameters)
+        corners, ids = self.Detect_Markers(self.frame, parameters=self.aruco_parameters)
+        corners.append(self.Warehouse_corners)
+        ids = np.append(ids, [26])
         return self.frame, corners, ids
 
     def Get_Frame_And_Detect(self):
@@ -65,7 +84,9 @@ class Camera:
         return self.frame, corners, ids
 
     def Print_Detected_Markers(self, frame, corners, ids):
+        # frame = aruco.drawDetectedMarkers(frame, corners[:-1], ids[:-1])
         frame = aruco.drawDetectedMarkers(frame, corners, ids)
+
         return frame
 
     def Print_Full_Road_On_Frame(self, frame, deleted_points, FULL_road, DONE_road):
@@ -142,6 +163,16 @@ class VideoStreem_View2_Thread(QThread):
             print("Stop View2Thread")
             self.exit(0)
 
+
+if __name__=="__main__":
+    CAM=Camera(1)
+    CAM.Initialize()
+    while(True):
+        frame=CAM.get_frame()
+        cv2.imshow("frame", frame)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+    CAM.close_camera()
 
 
 

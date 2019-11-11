@@ -114,16 +114,21 @@ class Voronoi_Class:
     # Plot Voronoi diagram
     def Plot_Voronoi_Diagram(self):
         if self.voronoi_to_print != None:
+            # font = {'family': 'normal',
+            #         'weight': 'bold',
+            #         'size': 12}
+            # matplotlib.rc('font', **font)
             scipy.spatial.voronoi_plot_2d(self.voronoi_to_print)
             plt.xlim((0, self.frame_width))
             plt.ylim((self.frame_height, 0))
-            plt.title("Diagram Woronoja")
+            # plt.title("Diagram Woronoja")
+            # plt.savefig('voronoi_aruco_bez_przeszkod.png', dpi=300)
             plt.show()
 
     def Create_Voronoi_Graph(self, corners, obstacles):
         points_to_voronoi = self.Corners_To_Voronoi(corners)
         calculated_voronoi, clean_vertices = self.Calculate_Voronoi(points_to_voronoi)
-        # self.Plot_Voronoi_Diagram()
+        self.Plot_Voronoi_Diagram()
 
         removed_points_ids = self.Get_Points_Ids_From_Obstacles(calculated_voronoi, obstacles)
         calculated_voronoi_dictionary = self.Create_Dictionary(calculated_voronoi, removed_points_ids)
