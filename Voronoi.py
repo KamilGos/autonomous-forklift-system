@@ -20,18 +20,19 @@ class Voronoi_Class:
         self.frame_width = frame_width
         self.frame_height = frame_height
 
+
     def Create_Frame_Points(self):
         """
         This function create additional point around frame
         :return: List with points
         """
         frame_points = []
-        for i in range(0, self.frame_width, self.FPTV_FACTOR):
-            frame_points.append(np.array([i, 0]))
-            frame_points.append(np.array([i, self.frame_height]))
-        for i in range(0, self.frame_height, self.FPTV_FACTOR):
-            frame_points.append(np.array([0, i]))
-            frame_points.append(np.array([self.frame_width, i]))
+        for i in range(25, 484, self.FPTV_FACTOR):
+            frame_points.append(np.array([i, 37])) #góra
+            frame_points.append(np.array([i, 355])) #dół
+        for i in range(37, 355, self.FPTV_FACTOR):
+            frame_points.append(np.array([25, i])) #prawo
+            frame_points.append(np.array([484, i])) #lewo
         self.frame_points = frame_points
         return frame_points
 
@@ -128,7 +129,7 @@ class Voronoi_Class:
     def Create_Voronoi_Graph(self, corners, obstacles):
         points_to_voronoi = self.Corners_To_Voronoi(corners)
         calculated_voronoi, clean_vertices = self.Calculate_Voronoi(points_to_voronoi)
-        self.Plot_Voronoi_Diagram()
+        # self.Plot_Voronoi_Diagram()
 
         removed_points_ids = self.Get_Points_Ids_From_Obstacles(calculated_voronoi, obstacles)
         calculated_voronoi_dictionary = self.Create_Dictionary(calculated_voronoi, removed_points_ids)

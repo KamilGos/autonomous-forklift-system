@@ -34,12 +34,20 @@ class Main_function(QMainWindow, Ui_MainWindow):
         self.guide = None
         self.camera = Camera.Camera(1)
         self.camera.Initialize()
+        self.Warehouse=Warehouse.Warehouse()
+        self.Warehouse_level = 0
         self.tableWidget.item(0,1).setBackground(QColor(169,245,169))
         self.tableWidget.item(0, 1).setText("OK")
         self.tableWidget2.item(0, 1).setText("1")
         self.tableWidget2.item(1, 1).setText(self.PORT)
         self.tableWidget2.item(2, 1).setText(str(self.BAUDRATE))
         self.tableWidget2.item(3, 1).setText(str(self.FPTV))
+        self.tableWidget2.item(4, 1).setText("No")
+        self.tableWidget2.item(5, 1).setText("Not Started")
+        self.tableWidget2.item(6, 1).setText("Not Started")
+        self.tableWidget2.item(7, 1).setText("Not Started")
+
+
 
         self.Start_frame()
         self.ViewisRunning = False
@@ -213,9 +221,9 @@ class Main_function(QMainWindow, Ui_MainWindow):
                     self.guideinitialized = True
                 else:
                     print("Nie mogę rozpocząć paletyzacji. Error: Guide nie jest zainicjalizowany")
-                    self.tableWidget.item(1, 1).setBackground(QColor(255, 51, 51))
+                    self.tableWidget.item(1, 1).setBackground(QColor(255, 94, 94))
                     self.tableWidget.item(1, 1).setText("Error")
-                    self.tableWidget.item(2, 1).setBackground(QColor(255, 51, 51))
+                    self.tableWidget.item(2, 1).setBackground(QColor(255, 94, 94))
                     self.tableWidget.item(2, 1).setText("Error")
 
                     self.pushButton_GO.setText("START")
@@ -231,17 +239,29 @@ class Main_function(QMainWindow, Ui_MainWindow):
             self.PalletizaionThread.sig_Guide_Thread_ProgressBar_MaxValue.connect(self.Set_Maximum_ProgressBar)
             self.PalletizaionThread.sig_Guide_Thread_ProgressBar_NewValue.connect(self.Update_ProgressBar)
             self.PalletizaionThread.sig_Guide_Thread_Initialized.connect(self.UpdateTable)
-        else:
+            self.PalletizaionThread.sig_Guide_Thread_Phase1.connect(self.UpdatePhase1)
+            self.PalletizaionThread.sig_Guide_Thread_Phase2.connect(self.UpdatePhase2)
+            self.PalletizaionThread.sig_Guide_Thread_Errors.connect(self.UpdateErrors)
+            self.PalletizaionThread.sig_Guide_Thread_Error_STOP.connect(self.Error_STOP)
+            self.PalletizaionThread.sig_Guide_Thread_Update_Warehouse.connect(self.Update_Warehouse)
+
+        else: #Ręczne wyłączenie guide
             self.PalletizationisRunning = False
             self.PalletizaionThread.runperm = False
             self.PalletizaionThread.terminate()
             self.guide.communication.Serial.close()
             del self.guide
             self.guideinitialized = False
-            self.tableWidget.item(1, 1).setText("No initialized")
-            self.tableWidget.item(2, 1).setText("No initialized")
+            self.tableWidget.item(1, 1).setText("Uninitialized")
+            self.tableWidget.item(2, 1).setText("Uninitialized")
             self.tableWidget.item(1, 1).setBackground(QColor(255, 255, 255))
             self.tableWidget.item(2, 1).setBackground(QColor(255, 255, 255))
+            self.tableWidget2.item(4, 1).setText("No")
+            self.tableWidget2.item(4, 1).setBackground(QColor(255, 255, 255))
+            self.tableWidget2.item(5, 1).setText("Not Started")
+            self.tableWidget2.item(5, 1).setBackground(QColor(255, 255, 255))
+            self.tableWidget2.item(6, 1).setText("Not Started")
+            self.tableWidget2.item(6, 1).setBackground(QColor(255, 255, 255))
 
             self.ProgressBar.setValue(0)
             self.pushButton_GO.setText("START")
@@ -249,9 +269,13 @@ class Main_function(QMainWindow, Ui_MainWindow):
 
     def Set_Maximum_ProgressBar(self, value):
         self.ProgressBar.setMaximum(value)
+        self.StepsValue = value
+        self.tableWidget2.item(7, 1).setText(str(value+1))
 
     def Update_ProgressBar(self, value):
         self.ProgressBar.setValue(value)
+        self.tableWidget2.item(7, 1).setText(str(self.StepsValue - (value-1)))
+
 
     def start_View3(self):
         if self.View3isRunning == False:
@@ -269,6 +293,7 @@ class Main_function(QMainWindow, Ui_MainWindow):
 
     def update_View3(self, frame):
         if self.View3isRunning == True:
+            frame = cv2.warpPerspective(frame, self.camera.TransformMatrix, (455, 316))
             self.image_view.view.invertX(True)
             self.image_view.setImage(np.rot90(frame))
 
@@ -289,6 +314,65 @@ class Main_function(QMainWindow, Ui_MainWindow):
         self.FPTV = value
         self.tableWidget2.item(3, 1).setText(str(self.FPTV))
 
+    def UpdatePhase1(self, value):
+        if value == 1:
+            self.tableWidget2.item(5, 1).setText("Running")
+            self.tableWidget2.item(5, 1).setBackground(QColor(255, 254, 169))
+
+        elif value == 2:
+            self.tableWidget2.item(5, 1).setText("Done")
+            self.tableWidget2.item(5, 1).setBackground(QColor(169, 245, 169))
+
+        elif value == 3:
+            self.tableWidget2.item(5, 1).setText("ERROR")
+            self.tableWidget2.item(5, 1).setBackground(QColor(255, 51, 51))
+
+    def UpdatePhase2(self, value):
+        if value == 1:
+            self.tableWidget2.item(6, 1).setText("Running")
+            self.tableWidget2.item(6, 1).setBackground(QColor(255, 254, 169))
+
+        elif value == 2:
+            self.tableWidget2.item(6, 1).setText("Done")
+            self.tableWidget2.item(6, 1).setBackground(QColor(169, 245, 169))
+
+        elif value == 3:
+            self.tableWidget2.item(6, 1).setText("ERROR")
+            self.tableWidget2.item(6, 1).setBackground(QColor(255, 51, 51))
+
+    def UpdateErrors(self, value):
+        if value == 1:
+            self.tableWidget2.item(4, 1).setText("Road is not safe")
+            self.tableWidget2.item(4, 1).setBackground(QColor(255, 94, 94))
+
+    def Error_STOP(self, value):
+        if value == 0:
+            self.PalletizaionThread.terminate()
+            self.PalletizationisRunning = False
+            self.PalletizaionThread.runperm = False
+            self.PalletizaionThread.terminate()
+            self.guide.communication.Serial.close()
+            del self.guide
+            self.guideinitialized = False
+            self.tableWidget.item(1, 1).setText("Uninitialized")
+            self.tableWidget.item(2, 1).setText("Uninitialized")
+            self.tableWidget.item(1, 1).setBackground(QColor(255, 255, 255))
+            self.tableWidget.item(2, 1).setBackground(QColor(255, 255, 255))
+            self.tableWidget2.item(4, 1).setText("No")
+            self.tableWidget2.item(4, 1).setBackground(QColor(255, 255, 255))
+            self.tableWidget2.item(5, 1).setText("Not Started")
+            self.tableWidget2.item(5, 1).setBackground(QColor(255, 255, 255))
+            self.tableWidget2.item(6, 1).setText("Not Started")
+            self.tableWidget2.item(6, 1).setBackground(QColor(255, 255, 255))
+
+            self.ProgressBar.setValue(0)
+            self.pushButton_GO.setText("START")
+            self.pushButton_GO.setStyleSheet("background-color: DEFAULT <later on>")
+
+    def Update_Warehouse(self, id):
+        self.Warehouse.push(id)
+        self.tableWidget3.item(self.Warehouse.size()+1,1).setText("Pallet "+str(id))
+        self.tableWidget3.item(self.Warehouse.size()+1,1).setBackground(QColor(201, 201, 201))
 
 
 if __name__ == '__main__':

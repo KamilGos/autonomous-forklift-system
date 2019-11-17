@@ -1,11 +1,11 @@
 import cv2
-from PyQt5.QtCore import  QThread,  pyqtSignal
+from PyQt5.QtCore import  QThread,  pyqtSignal, QTimer
 import numpy as np
 import Trajectory
 import Communication
 import Camera
 import Calculations
-
+import copy
 class Guide:
     def __init__(self, camera, FPTV_FACTOR, PORT_COM, BAUDRATE):
         print("Tworzę klasę Guide")
@@ -13,7 +13,7 @@ class Guide:
         self.camera = camera
         print(self.camera.initialized)
         self.calculation = Calculations.Calculations()
-        self.Trajectory = Trajectory.Trajectory(FPTV_FACTOR, self.camera.width, self.camera.height, self.calculation)
+        self.Trajectory = Trajectory.Trajectory(FPTV_FACTOR, self.camera.bigwidth, self.camera.bigheight, self.calculation)
         self.communication = Communication.Communication()
         self.communication.Initialize(PORT_COM, BAUDRATE)
         if self.camera.initialized == True and self.communication.initializated == True:
@@ -25,75 +25,122 @@ class Guide_Thread(QThread):
     sig_Guide_Thread_ProgressBar_MaxValue = pyqtSignal(int)
     sig_Guide_Thread_ProgressBar_NewValue = pyqtSignal(int)
     sig_Guide_Thread_Initialized = pyqtSignal(str)
+    sig_Guide_Thread_Phase1 = pyqtSignal(int)
+    sig_Guide_Thread_Phase2 = pyqtSignal(int)
+    sig_Guide_Thread_Errors = pyqtSignal(int)
+    sig_Guide_Thread_Error_STOP = pyqtSignal(int)
+    sig_Guide_Thread_Update_Warehouse = pyqtSignal(int)
 
-
-    def __init__(self, camera, guide_class,id_robot, id_aim, MIN_DISTANCE, MIN_ANGLE, VIEV_IS_RUNNING):
+    def __init__(self, camera, guide_class,id_robot, id_pallet, MIN_DISTANCE, MIN_ANGLE, VIEV_IS_RUNNING):
         QThread.__init__(self)
         self.runperm = True
         self.camera = camera
         self.id_robot = id_robot
         self.id_aim = None
-        self.id_pallet = id_aim
+        self.id_pallet = id_pallet
         self.id_warehouse = 26
-        self.MIN_DISTANCE = MIN_DISTANCE
+        self.MIN_DISTANCE_CONST = MIN_DISTANCE
+        self.MIN_DISTANCE_LAST_CONST = 15
+        self.MIN_DISTANCE = self.MIN_DISTANCE_CONST
         self.MIN_ANGLE = MIN_ANGLE
         self.GuideT = guide_class
         self.VIEW_IS_RUNNING = VIEV_IS_RUNNING
         self.DONE_road = []
-        self.point_iterator = 0
         self.deleted_points = []
+        self.shortest_path_coor=[]
+        self.cpframe = np.zeros((1,1))
+        self.point_iterator = 0
         # print("Koniec init")
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.Send_View3_Frame)
+        self.timer.start(100)
 
 
     def run(self):
+
+        # self.Send_View3_frame()
         self.sig_Guide_Thread_Initialized.emit(str("OK"))
         print("Start Guide_Thread")
         self.id_aim = self.id_pallet
+        self.sig_Guide_Thread_Phase1.emit(1)  # phase 1 running
         if self.GO_FROM_A_TO_B(self.id_aim, self.id_pallet) == False:
+            self.sig_Guide_Thread_Phase1.emit(3)  # phase 1 error
+            self.sig_Guide_Thread_Errors.emit(1)
+
             print("***** TRASA NIEBEZPIECZNA ******")
             self.exit(0)
+            self.sig_Guide_Thread_Error_STOP.emit(0)
+
         self.CALIBRATE_ROTATION(self.deleted_points[0])
         self.GuideT.communication.Send_Take_Pallet(0)
+        self.DONE_road = []
+        self.deleted_points = []
+        self.shortest_path_coor = []
         if self.GuideT.communication.Read_Data_From_Robot()== True:
+            self.sig_Guide_Thread_Phase1.emit(2) #phase 1 done
             self.id_aim = self.id_warehouse
-            self.GO_FROM_A_TO_B(self.id_aim, self.id_pallet)
+            print("okok")
+            self.sig_Guide_Thread_Phase2.emit(1)  # phase 2 running
+            if self.GO_FROM_A_TO_B(self.id_aim, self.id_pallet) == False:
+                self.sig_Guide_Thread_Phase2.emit(3)  # phase 2 error
+                self.sig_Guide_Thread_Errors.emit(1)
+
+                print("***** TRASA NIEBEZPIECZNA ******")
+                self.exit(0)
+                self.sig_Guide_Thread_Error_STOP.emit(0)
+
             self.CALIBRATE_ROTATION(self.deleted_points[0])
             self.GuideT.communication.Send_Put_Pallet(0)
             if self.GuideT.communication.Read_Data_From_Robot() == True:
+                self.sig_Guide_Thread_Phase2.emit(2)  # phase 2 done
+                self.sig_Guide_Thread_Update_Warehouse.emit(self.id_pallet)
                 print("*** ZAKOŃCZONO PROCES PALETYZACJI ***")
                 print(" *** PALETA ODŁOŻONA NA POZIOM 0 ***")
                 print("  *** ZAMYKAM WĄTEK PALETYZACJI ***")
 
+    def Send_View3_Frame(self):
+        if len(self.shortest_path_coor)>0 and len(self.deleted_points)>0 and len(self.DONE_road)>0:
+            self.cpframe = self.GET_FRAME_ONLY()
+            self.sig_Guide_Thread_Frame_With_Road.emit(
+                self.camera.Print_Full_Road_On_Frame(self.cpframe, self.deleted_points, self.shortest_path_coor, self.DONE_road))
+
     def GO_FROM_A_TO_B(self, id_aim, id_pallet):
         print("Rozpoczynam jazdę")
-        self.deleted_points = []
+        self.point_iterator = 0
+
         frame, corners, ids = self.GET_FRAME()
-        shortest_path_coor, is_safe = self.GuideT.Trajectory.Set_Route_Between_Points(corners, ids, self.id_robot,
+        print("ok1")
+        self.shortest_path_coor, is_safe = self.GuideT.Trajectory.Set_Route_Between_Points(corners, ids, self.id_robot,
                                                                                       id_aim, id_pallet)
 
         print("Road is safe? -> ", is_safe)
-        last_idx = self.GuideT.calculation.Check_Last_Point(shortest_path_coor) + 1
+        last_idx = self.GuideT.calculation.Check_Last_Point(self.shortest_path_coor) + 1
 
         for i in range(last_idx):
-            self.deleted_points.append(shortest_path_coor.pop(len(shortest_path_coor) - 1))
+            self.deleted_points.append(self.shortest_path_coor.pop(len(self.shortest_path_coor) - 1))
 
-        self.deleted_points.append(shortest_path_coor[len(shortest_path_coor) - 1])
-        self.sig_Guide_Thread_ProgressBar_MaxValue.emit(((len(shortest_path_coor) - 1) - last_idx))
+        self.deleted_points.append(self.shortest_path_coor[len(self.shortest_path_coor) - 1])
+        self.sig_Guide_Thread_ProgressBar_MaxValue.emit(((len(self.shortest_path_coor) - 1) - last_idx))
 
-        self.DONE_road.append(shortest_path_coor[0])
+        self.DONE_road.append(self.shortest_path_coor[0])
         self.sig_Guide_Thread_Frame_With_Road.emit(
-            self.camera.Print_Full_Road_On_Frame(frame, self.deleted_points, shortest_path_coor, self.DONE_road))
+            self.camera.Print_Full_Road_On_Frame(frame, self.deleted_points, self.shortest_path_coor, self.DONE_road))
 
         if is_safe == True:  # Trasa jest bezpieczna = mozemy rozpocząć sekwencję
-            for point in shortest_path_coor:
+            for point in self.shortest_path_coor:
                 self.point_iterator += 1
+                print("Iterator:", self.point_iterator)
+                print("MAX:", len(self.shortest_path_coor) - last_idx)
+                if self.point_iterator == len(self.shortest_path_coor) - last_idx: #ostatni punkt
+                    self.MIN_DISTANCE=self.MIN_DISTANCE_LAST_CONST
+                    print("Zmieniam minimalny dystans")
                 self.sig_Guide_Thread_ProgressBar_NewValue.emit((self.point_iterator - 2))
                 NEXT_POINT = False
                 while NEXT_POINT == False:
                     frame, corners, ids, corners_ids_dict, Rob_center = self.GET_FRAME_EASY_AND_CREATE_DICT()
                     self.DONE_road.append(Rob_center[0])
                     self.sig_Guide_Thread_Frame_With_Road.emit(
-                        self.camera.Print_Full_Road_On_Frame(frame, self.deleted_points, shortest_path_coor,
+                        self.camera.Print_Full_Road_On_Frame(frame, self.deleted_points, self.shortest_path_coor,
                                                              self.DONE_road))
                     print("A=", corners_ids_dict[str(self.id_robot)])
                     print("B=", point)
@@ -112,7 +159,7 @@ class Guide_Thread(QThread):
                                 frame, corners, ids, corners_ids_dict, Rob_center = self.GET_FRAME_EASY_AND_CREATE_DICT()
                                 self.DONE_road.append(Rob_center[0])
                                 self.sig_Guide_Thread_Frame_With_Road.emit(
-                                    self.camera.Print_Full_Road_On_Frame(frame, self.deleted_points, shortest_path_coor,
+                                    self.camera.Print_Full_Road_On_Frame(frame, self.deleted_points, self.shortest_path_coor,
                                                                          self.DONE_road))
                                 angle, dir = self.GuideT.calculation.Calculate_Angle_RA(
                                     corners_ids_dict[str(self.id_robot)], point)
@@ -128,6 +175,7 @@ class Guide_Thread(QThread):
             print("Trasa niebezpieczna")
             return False
         print("Kończę fazę GUIDE")
+        self.MIN_DISTANCE = self.MIN_DISTANCE_CONST
         return True
 
     def CALIBRATE_ROTATION(self, point):
@@ -154,6 +202,14 @@ class Guide_Thread(QThread):
             while len(ids) != self.GuideT.camera.MARKERS_VAL:
                 frame, corners, ids = self.camera.Detect_Markers_Self()
         return frame, corners, ids
+
+
+    def GET_FRAME_ONLY(self):
+        if self.VIEW_IS_RUNNING == False:
+            frame = self.camera.get_frame()
+        else:  # kamera juz dziala czyli korzysamy z ramek bez pobierania nowych
+            frame = self.camera.Return_Self_Frame()
+        return frame
 
     def GET_FRAME_EASY_AND_CREATE_DICT(self):
         frame, corners, ids = self.GET_FRAME()

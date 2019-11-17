@@ -121,16 +121,21 @@ class Communication:
             self.Show_Log("send_put_pallet", sys.exc_info())
 
     def Read_Data_From_Robot(self):
-        read_data = None
-        self.Serial.flushInput()
-        while read_data == None:
-            data = self.Serial.readline()
-            read_data = data.decode()
-            time.sleep(0.1)
-        if read_data[0] == str(1):
-            return True
-        else:
-            return False
+        tmp = None
+        while tmp != 'd':
+            tmp = input("Press the button: ")
+        return True
+
+        # read_data = None
+        # self.Serial.flushInput()
+        # while read_data == None:
+        #     data = self.Serial.readline()
+        #     read_data = data.decode()
+        #     time.sleep(0.1)
+        # if read_data[0] == str(1):
+        #     return True
+        # else:
+        #     return False
 
 
 if __name__=="__main__":

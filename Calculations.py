@@ -10,8 +10,7 @@ class Calculations:
     def __init__(self):
         print("Tworzę klasę Calculations")
 
-    def __del__(self):
-        print("usuwam Calculations")
+
     # function delete one not needed dimension, change elements type on int and reverse elements
     # corners - list of corners to change
     def Easy_Corners_And_Ids(self, corners, ids):
@@ -25,13 +24,25 @@ class Calculations:
             tmp = np.array([tmp])
             return tmp, ids
 
-    def Create_Dictionary_Of_Corners(self,corners, ids):
-        ids = np.squeeze(ids)
+    # def Create_Dictionary_Of_Corners(self,corners, ids):
+    #     ids = np.squeeze(ids)
+    #     dict = {}
+    #     iter = 0
+    #     for id in ids:
+    #         dict[str(id)] = corners[iter]
+    #         iter = iter + 1
+    #     return dict
+
+    def Create_Dictionary_Of_Corners(self,corners, idss):
+        ids = np.squeeze(idss)
         dict = {}
         iter = 0
-        for id in ids:
-            dict[str(id)] = corners[iter]
-            iter = iter + 1
+        if len(idss) > 1:
+            for id in ids:
+                dict[str(id)] = corners[iter]
+                iter = iter + 1
+        else:
+            dict[str(idss[0][0])] = corners[0]
         return dict
 
     def Get_Centers_Of_Codes_From_Dictionary(self, dictionary_of_corners, ids):
@@ -177,11 +188,14 @@ class Calculations:
         X = Rob[0][0] - Rob[3][0]
         Y = Rob[0][1] - Rob[3][1]
         Rob_angle = self.Determine_Angle_XY(X, Y)
+        # print("Robot angle= ", Rob_angle)
+        # Calculate aim angle
         Rob_center = self.Get_Centers_Of_Corners(np.array([Rob]))
 
         X = Aim[0] - Rob_center[0][0]
         Y = Aim[1] - Rob_center[0][1]
         Aim_angle = self.Determine_Angle_XY(X, Y)
+
         if Aim_angle > Rob_angle:
             if (Aim_angle - Rob_angle) <= 180:
                 return abs(int(Aim_angle - Rob_angle)), 1  # go left

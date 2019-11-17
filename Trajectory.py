@@ -11,7 +11,7 @@ import Dijkstra_heap
 class Trajectory:
     def __init__(self, FPTV_FACTOR, frame_width, frame_height, Calculations_class):
         print("Tworzę klasę Trajectory")
-        self.SAFE_AREA = 30
+        self.SAFE_AREA = 20
         self.last_shortest_path_COOR = None
         self.frame_width = frame_width
         self.frame_height = frame_height
@@ -76,11 +76,12 @@ class Trajectory:
 
     def Set_Route_Between_Points(self, aruco_corners, aruco_ids, id_robot, id_aim, id_pallet):
         corners, ids = self.Calcualtion.Easy_Corners_And_Ids(aruco_corners, aruco_ids)
+        print
         corner_ids_dicionary = self.Calcualtion.Create_Dictionary_Of_Corners(corners, ids)
         # tutaj mamy rzeczywisty środek kodów(moze go nie byc w voronoi)
         robot_center, aim_center = self.Calcualtion.Get_Centers_Of_Codes_From_Dictionary(corner_ids_dicionary,
                                                                                          [id_robot, id_aim])
-
+        print("przed p")
         obstacles_corners = self.Calcualtion.Get_Obstacles_Corners(id_robot, id_aim, id_pallet, corner_ids_dicionary)
         print("przeszkody:", obstacles_corners)
         graph_input, calculated_voronoi_dictionary = self.Voronoi.Create_Voronoi_Graph(corners, obstacles_corners)
