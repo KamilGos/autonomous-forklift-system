@@ -5,7 +5,7 @@ from pyqtgraph import ImageView
 import numpy as np
 import cv2
 import cv2.aruco as aruco
-from views import Ui_MainWindow, Ui_New_FPTV_value_Window
+from views import Ui_MainWindow, Ui_New_FPTV_value_Window, Ui_New_PortCOM_Window,Ui_New_Baudrate_Window, Ui_Help
 
 import Camera
 import Guide
@@ -30,6 +30,9 @@ class Main_function(QMainWindow, Ui_MainWindow):
         self.FPTV = 25
         self.PORT = "COM14"
         self.BAUDRATE = 9600
+        self.ROBOTS_IDS = [0]
+        self.PALLETS_IDS=[]
+        self.FIRST_IDS =[]
         self.guideinitialized = False
         self.guide = None
         self.camera = Camera.Camera(1)
@@ -47,8 +50,6 @@ class Main_function(QMainWindow, Ui_MainWindow):
         self.tableWidget2.item(6, 1).setText("Not Started")
         self.tableWidget2.item(7, 1).setText("Not Started")
 
-
-
         self.Start_frame()
         self.ViewisRunning = False
         self.View3isRunning = False
@@ -63,23 +64,26 @@ class Main_function(QMainWindow, Ui_MainWindow):
         self.Robot_id_box.setText("0")
         self.Pallet_id_box.setText("2")
         self.actionChange_FPTV.triggered.connect(self.ACTION_Change_FPTV)
+        self.actionChange_PortCOM.triggered.connect(self.ACTION_Change_PortCOM)
+        self.actionChange_Baudrate.triggered.connect(self.ACTION_Change_Baudrate)
+        self.actionHelp.triggered.connect(self.ACTION_Show_HELP)
+
 
     def Start_frame(self):
         if self.camera.initialized:
-            self.camera.get_frame()
-            corners, ids = self.camera.Detect_Markers(self.camera.frame)
+            # self.camera.get_frame()
+            # corners, ids = self.camera.Detect_Markers(self.camera.frame)
+            _, corners, ids = self.camera.get_frame_while()
             if np.all(ids != None):
                 self.markers_number = len(ids)
+                self.FIRST_IDS = ids
+                print(self.FIRST_IDS)
                 self.camera.frame= self.camera.Print_Detected_Markers(self.camera.frame, corners, ids)
-                cv2.putText(self.camera.frame, "Real view", (70,70), cv2.FONT_HERSHEY_SIMPLEX, 2, (0,0,255),2)
-
 
                 # cv2.circle(self.camera.frame, (366,0), 2, (252, 223, 3), 2)
                 # cv2.circle(self.camera.frame, (450, 0), 2, (252, 223, 3), 2)
                 # cv2.circle(self.camera.frame, (450,88), 2, (252, 223, 3), 2)
                 # cv2.circle(self.camera.frame, (366,88), 2, (252, 223, 3), 2)
-
-
 
                 self.update_View(self.camera.frame)
             else:
@@ -154,13 +158,18 @@ class Main_function(QMainWindow, Ui_MainWindow):
         if self.robot_id_selected == False:
             tmp = self.Robot_id_box.text()
             if tmp.isdigit() != True:
-                QMessageBox.about(self, "Error", "Robot id is not a number!")
+                QMessageBox.about(self, "Error", "The character entered is not a number")
                 self.Robot_id_box.clear()
                 return 0
-            if tmp == self.id_pallet:
-                QMessageBox.about(self, "Error", "You already choose this id for pallet!")
+            if int(tmp) not in self.ROBOTS_IDS:
+                QMessageBox.about(self, "Error", "Robot with id: "+tmp+" does not exist")
                 self.Robot_id_box.clear()
                 return 0
+            if int(tmp) not in self.FIRST_IDS:
+                QMessageBox.about(self, "Error", "TThere is no robot on the map with ID " + tmp)
+                self.Robot_id_box.clear()
+                return 0
+
             self.id_robot = int(tmp)
             self.robot_id_selected = True
             self.Robot_id_box.setAlignment(Qt.AlignCenter)
@@ -183,15 +192,19 @@ class Main_function(QMainWindow, Ui_MainWindow):
         if self.pallet_id_selected == False:
             tmp = self.Pallet_id_box.text()
             if tmp.isdigit() != True:
-                QMessageBox.about(self, "Error", "Pallet id is not a number!")
+                QMessageBox.about(self, "Error", "The character entered is not a number!")
                 self.Pallet_id_box.clear()
                 return 0
-            if tmp == self.id_robot:
-                QMessageBox.about(self, "Error", "You already choose this id for robot!")
-                self.Pallet_id_box.clear()
+            if int(tmp) in self.ROBOTS_IDS:
+                QMessageBox.about(self, "Error", "ID "+tmp+" is not a pallet ID!")
+                self.Robot_id_box.clear()
                 return 0
-            self.id_pallet = int(tmp)
+            if int(tmp) not in self.FIRST_IDS:
+                QMessageBox.about(self, "Error", "There is no pallet in the map with ID " + tmp)
+                self.Robot_id_box.clear()
+                return 0
 
+            self.id_pallet = int(tmp)
             self.pallet_id_selected = True
             self.Pallet_id_box.setAlignment(Qt.AlignCenter)
             self.Pallet_id_box.setStyleSheet("background-color: #A9F5A9")
@@ -221,6 +234,7 @@ class Main_function(QMainWindow, Ui_MainWindow):
                     self.guideinitialized = True
                 else:
                     print("Nie mogę rozpocząć paletyzacji. Error: Guide nie jest zainicjalizowany")
+                    self.UpdateErrors(2)
                     self.tableWidget.item(1, 1).setBackground(QColor(255, 94, 94))
                     self.tableWidget.item(1, 1).setText("Error")
                     self.tableWidget.item(2, 1).setBackground(QColor(255, 94, 94))
@@ -231,7 +245,7 @@ class Main_function(QMainWindow, Ui_MainWindow):
                     return 0
             print("Wywołuję wątek")
 
-            self.PalletizaionThread = Guide.Guide_Thread(self.camera, self.guide, self.id_robot, self.id_aim, 30, 3, self.ViewisRunning)
+            self.PalletizaionThread = Guide.Guide_Thread(self.camera, self.guide, self.id_robot, self.id_pallet, 30, 3, self.ViewisRunning)
             self.PalletizaionThread.setPriority(QThread.HighestPriority)
             self.PalletizationisRunning = True
             self.PalletizaionThread.start()
@@ -248,6 +262,9 @@ class Main_function(QMainWindow, Ui_MainWindow):
         else: #Ręczne wyłączenie guide
             self.PalletizationisRunning = False
             self.PalletizaionThread.runperm = False
+            self.PalletizaionThread.DONE_road = []
+            self.PalletizaionThread.deleted_points = []
+            self.PalletizaionThread.shortest_path_coor = []
             self.PalletizaionThread.terminate()
             self.guide.communication.Serial.close()
             del self.guide
@@ -314,6 +331,28 @@ class Main_function(QMainWindow, Ui_MainWindow):
         self.FPTV = value
         self.tableWidget2.item(3, 1).setText(str(self.FPTV))
 
+    def ACTION_Change_PortCOM(self):
+        self.PortCOM_dialog = Ui_New_PortCOM_Window(self)
+        self.PortCOM_dialog.show()
+        self.PortCOM_dialog.sig_Change_PortCOM.connect(self.UpdatePortCOM)
+
+    def UpdatePortCOM(self, value):
+        self.PORT = "COM"+str(value)
+        self.tableWidget2.item(1, 1).setText(self.PORT)
+
+    def ACTION_Change_Baudrate(self):
+        self.Baudrate_dialog = Ui_New_Baudrate_Window(self)
+        self.Baudrate_dialog.show()
+        self.Baudrate_dialog.sig_Change_Baudrate.connect(self.UpdateBaudrate)
+
+    def UpdateBaudrate(self, value):
+        self.BAUDRATE = value
+        self.tableWidget2.item(2, 1).setText(str(self.BAUDRATE))
+
+    def ACTION_Show_HELP(self):
+        self.Help_dialog = Ui_Help(self)
+        self.Help_dialog.show()
+
     def UpdatePhase1(self, value):
         if value == 1:
             self.tableWidget2.item(5, 1).setText("Running")
@@ -344,6 +383,9 @@ class Main_function(QMainWindow, Ui_MainWindow):
         if value == 1:
             self.tableWidget2.item(4, 1).setText("Road is not safe")
             self.tableWidget2.item(4, 1).setBackground(QColor(255, 94, 94))
+        if value ==2:
+            self.tableWidget2.item(4, 1).setText("No connection with robot")
+            self.tableWidget2.item(4, 1).setBackground(QColor(255, 94, 94))
 
     def Error_STOP(self, value):
         if value == 0:
@@ -371,8 +413,9 @@ class Main_function(QMainWindow, Ui_MainWindow):
 
     def Update_Warehouse(self, id):
         self.Warehouse.push(id)
-        self.tableWidget3.item(self.Warehouse.size()+1,1).setText("Pallet "+str(id))
-        self.tableWidget3.item(self.Warehouse.size()+1,1).setBackground(QColor(201, 201, 201))
+        print(self.Warehouse.size())
+        self.tableWidget3.item(abs(self.Warehouse.size()-3),1).setText("Pallet "+str(id))
+        self.tableWidget3.item(abs(self.Warehouse.size()-3),1).setBackground(QColor(201, 201, 201))
 
 
 if __name__ == '__main__':

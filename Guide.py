@@ -6,6 +6,7 @@ import Communication
 import Camera
 import Calculations
 import copy
+from cv2 import aruco
 class Guide:
     def __init__(self, camera, FPTV_FACTOR, PORT_COM, BAUDRATE):
         print("Tworzę klasę Guide")
@@ -50,15 +51,11 @@ class Guide_Thread(QThread):
         self.shortest_path_coor=[]
         self.cpframe = np.zeros((1,1))
         self.point_iterator = 0
-        # print("Koniec init")
         self.timer = QTimer()
         self.timer.timeout.connect(self.Send_View3_Frame)
         self.timer.start(100)
 
-
     def run(self):
-
-        # self.Send_View3_frame()
         self.sig_Guide_Thread_Initialized.emit(str("OK"))
         print("Start Guide_Thread")
         self.id_aim = self.id_pallet
@@ -73,6 +70,7 @@ class Guide_Thread(QThread):
 
         self.CALIBRATE_ROTATION(self.deleted_points[0])
         self.GuideT.communication.Send_Take_Pallet(0)
+        self.camera.MARKERS_VAL=self.camera.MARKERS_VAL-1
         self.DONE_road = []
         self.deleted_points = []
         self.shortest_path_coor = []
@@ -97,36 +95,35 @@ class Guide_Thread(QThread):
                 print("*** ZAKOŃCZONO PROCES PALETYZACJI ***")
                 print(" *** PALETA ODŁOŻONA NA POZIOM 0 ***")
                 print("  *** ZAMYKAM WĄTEK PALETYZACJI ***")
+                self.sig_Guide_Thread_Error_STOP.emit(0)
 
-    def Send_View3_Frame(self):
-        if len(self.shortest_path_coor)>0 and len(self.deleted_points)>0 and len(self.DONE_road)>0:
-            self.cpframe = self.GET_FRAME_ONLY()
-            self.sig_Guide_Thread_Frame_With_Road.emit(
-                self.camera.Print_Full_Road_On_Frame(self.cpframe, self.deleted_points, self.shortest_path_coor, self.DONE_road))
 
     def GO_FROM_A_TO_B(self, id_aim, id_pallet):
         print("Rozpoczynam jazdę")
         self.point_iterator = 0
-
         frame, corners, ids = self.GET_FRAME()
-        print("ok1")
-        self.shortest_path_coor, is_safe = self.GuideT.Trajectory.Set_Route_Between_Points(corners, ids, self.id_robot,
+        try:
+            self.shortest_path_coor, is_safe = self.GuideT.Trajectory.Set_Route_Between_Points(corners, ids, self.id_robot,
                                                                                       id_aim, id_pallet)
+        except:
+            print("Błąd wyszukiwania trasy")
+            return False
 
-        print("Road is safe? -> ", is_safe)
+        if is_safe != True:
+            print("Road is not safe!")
+            return False
+
         last_idx = self.GuideT.calculation.Check_Last_Point(self.shortest_path_coor) + 1
-
         for i in range(last_idx):
             self.deleted_points.append(self.shortest_path_coor.pop(len(self.shortest_path_coor) - 1))
-
         self.deleted_points.append(self.shortest_path_coor[len(self.shortest_path_coor) - 1])
         self.sig_Guide_Thread_ProgressBar_MaxValue.emit(((len(self.shortest_path_coor) - 1) - last_idx))
-
         self.DONE_road.append(self.shortest_path_coor[0])
         self.sig_Guide_Thread_Frame_With_Road.emit(
             self.camera.Print_Full_Road_On_Frame(frame, self.deleted_points, self.shortest_path_coor, self.DONE_road))
 
-        if is_safe == True:  # Trasa jest bezpieczna = mozemy rozpocząć sekwencję
+
+        if is_safe == True:
             for point in self.shortest_path_coor:
                 self.point_iterator += 1
                 print("Iterator:", self.point_iterator)
@@ -142,8 +139,8 @@ class Guide_Thread(QThread):
                     self.sig_Guide_Thread_Frame_With_Road.emit(
                         self.camera.Print_Full_Road_On_Frame(frame, self.deleted_points, self.shortest_path_coor,
                                                              self.DONE_road))
-                    print("A=", corners_ids_dict[str(self.id_robot)])
-                    print("B=", point)
+                    # print("A=", corners_ids_dict[str(self.id_robot)])
+                    # print("B=", point)
                     distance = self.GuideT.calculation.Calculate_Distance_RA(corners_ids_dict[str(self.id_robot)],
                                                                              point)
                     print("Distance = ", distance)
@@ -155,18 +152,23 @@ class Guide_Thread(QThread):
                         while angle > self.MIN_ANGLE and angle < (360 - self.MIN_ANGLE):  # musimy się obrócić
                             print("Zły kąt")
                             self.GuideT.communication.Send_Rotate(angle, dir)
-                            if self.GuideT.communication.Read_Data_From_Robot() == True:
-                                frame, corners, ids, corners_ids_dict, Rob_center = self.GET_FRAME_EASY_AND_CREATE_DICT()
-                                self.DONE_road.append(Rob_center[0])
-                                self.sig_Guide_Thread_Frame_With_Road.emit(
-                                    self.camera.Print_Full_Road_On_Frame(frame, self.deleted_points, self.shortest_path_coor,
+                            try:
+                                if self.GuideT.communication.Read_Data_From_Robot() == True:
+                                    frame, corners, ids, corners_ids_dict, Rob_center = self.GET_FRAME_EASY_AND_CREATE_DICT()
+                                    self.DONE_road.append(Rob_center[0])
+                                    self.sig_Guide_Thread_Frame_With_Road.emit(
+                                        self.camera.Print_Full_Road_On_Frame(frame, self.deleted_points, self.shortest_path_coor,
                                                                          self.DONE_road))
-                                angle, dir = self.GuideT.calculation.Calculate_Angle_RA(
+                                    angle, dir = self.GuideT.calculation.Calculate_Angle_RA(
                                     corners_ids_dict[str(self.id_robot)], point)
-                                print("Nowy kąt = ", angle)
+                                    print("Nowy kąt = ", angle)
+                            except:
+                                print("Błąd 174")
                         print("Poprawny kąt")
                         self.GuideT.communication.Send_Go_Straight(distance)
-                        ACK = self.GuideT.communication.Read_Data_From_Robot()
+                        try:
+                            ACK = self.GuideT.communication.Read_Data_From_Robot()
+                        except: print("Błąd 179")
                         print("I got ACK after Go Straight")
                     else:  # Dojechał do punktu
                         print("Biorę kolejny punkt")
@@ -205,10 +207,9 @@ class Guide_Thread(QThread):
 
 
     def GET_FRAME_ONLY(self):
-        if self.VIEW_IS_RUNNING == False:
-            frame = self.camera.get_frame()
-        else:  # kamera juz dziala czyli korzysamy z ramek bez pobierania nowych
-            frame = self.camera.Return_Self_Frame()
+        frame = self.camera.get_frame()
+        corners, ids = self.camera.Detect_Markers(frame)
+        frame = aruco.drawDetectedMarkers(frame, corners[:-1], ids[:-1])
         return frame
 
     def GET_FRAME_EASY_AND_CREATE_DICT(self):
@@ -217,6 +218,14 @@ class Guide_Thread(QThread):
         corners_ids_dict = self.GuideT.calculation.Create_Dictionary_Of_Corners(corners, ids)
         Rob_center = self.GuideT.calculation.Get_Centers_Of_Corners(np.array([corners_ids_dict[str(self.id_robot)]]))
         return frame, corners, ids, corners_ids_dict, Rob_center
+
+
+    def Send_View3_Frame(self):
+        if len(self.shortest_path_coor)>0 and len(self.deleted_points)>0 and len(self.DONE_road)>0:
+            self.cpframe = self.GET_FRAME_ONLY()
+            self.sig_Guide_Thread_Frame_With_Road.emit(
+                self.camera.Print_Full_Road_On_Frame(self.cpframe, self.deleted_points, self.shortest_path_coor, self.DONE_road))
+        else: print("Brak")
 
 
 if __name__ == "__main__":

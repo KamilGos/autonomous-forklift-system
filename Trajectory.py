@@ -76,14 +76,13 @@ class Trajectory:
 
     def Set_Route_Between_Points(self, aruco_corners, aruco_ids, id_robot, id_aim, id_pallet):
         corners, ids = self.Calcualtion.Easy_Corners_And_Ids(aruco_corners, aruco_ids)
-        print
         corner_ids_dicionary = self.Calcualtion.Create_Dictionary_Of_Corners(corners, ids)
+        # print(corner_ids_dicionary)
         # tutaj mamy rzeczywisty środek kodów(moze go nie byc w voronoi)
         robot_center, aim_center = self.Calcualtion.Get_Centers_Of_Codes_From_Dictionary(corner_ids_dicionary,
                                                                                          [id_robot, id_aim])
-        print("przed p")
         obstacles_corners = self.Calcualtion.Get_Obstacles_Corners(id_robot, id_aim, id_pallet, corner_ids_dicionary)
-        print("przeszkody:", obstacles_corners)
+        # print("przeszkody:", obstacles_corners)
         graph_input, calculated_voronoi_dictionary = self.Voronoi.Create_Voronoi_Graph(corners, obstacles_corners)
         # print(calculated_voronoi_dictionary)
         # print("Robot center: ", robot_center, " Aim center: ", aim_center)

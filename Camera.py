@@ -20,8 +20,6 @@ class Camera:
         self.smallright = 484  # 538
         self.smalltop = 37  # 86
         self.smallbottom = 355  # 403
-
-
         self.bigheight = self.bigbottom-self.bigtop
         self.bigwidth  = self.bigright-self.bigleft
         self.initialized = False
@@ -30,9 +28,9 @@ class Camera:
         self.aruco_parameters.adaptiveThreshConstant = 7
         self.aruco_parameters.polygonalApproxAccuracyRate = 0.03
         self.aruco_parameters.minMarkerPerimeterRate = 0.04
-        self.MARKERS_VAL = 4
+        self.MARKERS_VAL = 4+1
         # self.Warehouse_corners = np.array([[[366,0],[450,0],[450,88],[366,88]]])
-        self.Warehouse_corners = np.array([[[415,70],[445,70],[445,100],[415,100]]])
+        self.Warehouse_corners = np.array([[[400,85],[430,85],[430,115],[400,115]]])
         self.pts1 = np.float32([[30, 26], [485, 27], [485, 343], [24, 345]])
         self.pts2 = np.float32([[0, 0], [455,0], [455, 316], [0, 316]])
         self.TransformMatrix=cv2.getPerspectiveTransform(self.pts1, self.pts2)
@@ -40,6 +38,7 @@ class Camera:
         self.CAMERA_HEIGHT = 1530  # mm
         self.ROBOT_HEIGHT = 167  # mm
         self.map_center = (int(self.bigwidth / 2), int(self.bigheight / 2))
+        print(self.map_center)
         self.Calculations = Calculations.Calculations()
         self.callibration_matrix = np.array([[733.65108925, 0, 341.18570973],
                         [0, 733.86740229, 229.70186298],
@@ -68,8 +67,9 @@ class Camera:
         self.frame = cv2.undistort(self.frame, self.callibration_matrix, self.callibration_coef, None, self.callibration_matrix)
 
         self.frame = self.frame[self.bigtop:self.bigbottom, self.bigleft:self.bigright]
-        for point in self.pts1:
-            cv2.circle(self.frame, tuple(point), 2, (255, 255, 255), 2)
+        cv2.circle(self.frame, tuple(self.map_center), 3, (255,255,255))
+        # for point in self.pts1:
+        #     cv2.circle(self.frame, tuple(point), 2, (255, 255, 255), 2)
 
         # self.frame = self.frame[self.smalltop:self.smallbottom, self.smallleft:self.smallright]
         # self.frame = cv2.warpPerspective(self.frame, self.TransformMatrix, (455,316))
@@ -97,7 +97,11 @@ class Camera:
             if [0] in ids:
                 idx = ids.index([0])
                 new_corners = np.array(self.Delete_Perspective_ArUcos(dict[str('0')]))
-                corners[idx][0] = new_corners
+                # print(len(new_corners))
+                if len(new_corners)==4:
+                    # print(corners)
+                    # print("nw", new_corners)
+                    corners[idx][0] = new_corners
 
         corners.append(self.Warehouse_corners)
         ids = np.append(ids, [26])
@@ -155,8 +159,7 @@ class Camera:
         diff = diff / self.SKALA
         return diff, centers[0]
 
-    def Delete_Perspective_ArUcos(self,corners):
-        print("IN", corners)
+    def Delete_Perspective_ArUcos(self, corners):
         error, center = self.Calculate_Perspective_Error(corners)
         alpha_angle = self.Calculations.Determine_Angle_XY((center[0] - self.map_center[0]), (center[1] - self.map_center[1]))
         if alpha_angle >= 0 and alpha_angle < 90:  # I ćwiartka
@@ -174,17 +177,23 @@ class Camera:
 
         X = int(error * math.sin(math.radians(beta_angle)))
         Y = int(error * math.cos(math.radians(beta_angle)))
+        #print("X,Y:", X,Y)
 
         new_corners = []
         for point in corners:
-            if point[0] > self.map_center[0] and point[1] < self.map_center[1]:  # I ćwiartka
+            # print(point[0], point[1])
+            if   point[0] >= self.map_center[0] and point[1] <= self.map_center[1]:  # I ćwiartka
                 new_corners.append([int(point[0] - X), int(point[1] + Y)])
-            elif point[0] < self.map_center[0] and point[1] < self.map_center[1]:  # II ćwiartka
+                #print("I")
+            elif point[0] <= self.map_center[0] and point[1] <= self.map_center[1]:  # II ćwiartka
                 new_corners.append([int(point[0] + X), int(point[1] + Y)])
-            elif point[0] < self.map_center[0] and point[1] > self.map_center[1]:  # III ćwiartka
+                #print("II")
+            elif point[0] <= self.map_center[0] and point[1] >= self.map_center[1]:  # III ćwiartka
                 new_corners.append([int(point[0] + X), int(point[1] - Y)])
-            elif point[0] > self.map_center[0] and point[1] > self.map_center[1]:  # IV ćwiartka
+                #print("III")
+            elif point[0] >= self.map_center[0] and point[1] >= self.map_center[1]:  # IV ćwiartka
                 new_corners.append([int(point[0] - X), int(point[1] - Y)])
+                # print("IV")
         return new_corners
 
     def __str__(self):
@@ -239,17 +248,17 @@ class VideoStreem_View2_Thread(QThread):
             self.exit(0)
 
 
-if __name__=="__main__":
-    CAM=Camera(1)
-    CAM.Initialize()
-    while(True):
-        frame=CAM.get_frame()
-        corners, ids = CAM.Detect_Markers(frame)
-        frame=CAM.Print_Detected_Markers(frame, corners, ids)
-        cv2.imshow("frame", frame)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
-    CAM.close_camera()
+# if __name__=="__main__":
+#     CAM=Camera(1)
+#     CAM.Initialize()
+#     while(True):
+#         frame=CAM.get_frame()
+#         corners, ids = CAM.Detect_Markers(frame)
+#         frame=CAM.Print_Detected_Markers(frame, corners, ids)
+#         cv2.imshow("frame", frame)
+#         if cv2.waitKey(1) & 0xFF == ord('q'):
+#             break
+#     CAM.close_camera()
 
 
 

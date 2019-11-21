@@ -1,5 +1,5 @@
 from PyQt5.QtCore import Qt, QThread, QTimer, QRect, QMetaObject, QCoreApplication, pyqtSignal, QTimer, QTime
-from PyQt5.QtWidgets import QMainWindow, QDialog, QLCDNumber, QWidget,QSpinBox, QAbstractItemView, QTableWidgetItem, QHeaderView, QLineEdit,QTableWidget, QSpacerItem, QFrame, QProgressBar,  QPushButton,QFormLayout, QVBoxLayout, QApplication, QSlider, QHBoxLayout, QMenuBar, QMenu, QAction, QLabel, QSizePolicy, QTextBrowser
+from PyQt5.QtWidgets import QMainWindow, QDialog, QLCDNumber, QWidget,QSpinBox,  QComboBox,QAbstractItemView, QTableWidgetItem, QHeaderView, QLineEdit,QTableWidget, QSpacerItem, QFrame, QProgressBar,  QPushButton,QFormLayout, QVBoxLayout, QApplication, QSlider, QHBoxLayout, QMenuBar, QMenu, QAction, QLabel, QSizePolicy, QTextBrowser
 from PyQt5.QtGui import QImage, QColor, QFont
 from pyqtgraph import ImageView
 
@@ -9,7 +9,7 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.resize(1400, 600)
         MainWindow.setFixedSize(MainWindow.size())
-        MainWindow.setWindowTitle("Palletisation System (Author: Kamil Goś)")
+        MainWindow.setWindowTitle("Automatic Palletising System (Author: Kamil Goś)")
         self.centralwidget = QWidget(MainWindow)
         self.horizontalLayoutWidget = QWidget(self.centralwidget)
         self.horizontalLayoutWidget.setGeometry(QRect(0, 0, 1400, 550))
@@ -317,7 +317,6 @@ class Ui_New_FPTV_value_Window(QDialog):
     def __init__(self, parent=None):
         super(Ui_New_FPTV_value_Window, self).__init__(parent)
         self.setupUi(self)
-        sig_Change_FPTV = pyqtSignal(int)
         self.pushButton_OK.clicked.connect(self.Get_New_Value)
 
     def Get_New_Value(self):
@@ -364,6 +363,222 @@ class Ui_New_FPTV_value_Window(QDialog):
         New_FPTV_value_Window.setWindowTitle(_translate("New_FPTV_value_Window", "New FPTV"))
         self.label.setText(_translate("New_FPTV_value_Window", "     NEW VALUE:"))
         self.pushButton_OK.setText(_translate("New_FPTV_value_Window", "OK"))
+
+
+
+class Ui_New_PortCOM_Window(QDialog):
+    sig_Change_PortCOM = pyqtSignal(int)
+
+    def __init__(self, parent=None):
+        super(Ui_New_PortCOM_Window, self).__init__(parent)
+        self.setupUi(self)
+        self.pushButton_OK.clicked.connect(self.Get_New_Value)
+
+    def Get_New_Value(self):
+        value = self.spinBox.value()
+        self.sig_Change_PortCOM.emit(value)
+        self.close()
+
+    def setupUi(self, New_PortCOM_Window):
+        New_PortCOM_Window.setObjectName("New_FPTV_value_Window")
+        New_PortCOM_Window.resize(433, 89)
+        sizePolicy = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(New_PortCOM_Window.sizePolicy().hasHeightForWidth())
+        New_PortCOM_Window.setSizePolicy(sizePolicy)
+        self.formLayoutWidget = QWidget(New_PortCOM_Window)
+        self.formLayoutWidget.setGeometry(QRect(0, 10, 431, 71))
+        self.formLayoutWidget.setObjectName("formLayoutWidget")
+        self.formLayout = QFormLayout(self.formLayoutWidget)
+        self.formLayout.setContentsMargins(0, 0, 0, 0)
+        self.formLayout.setObjectName("formLayout")
+        self.label = QLabel(self.formLayoutWidget)
+        font = QFont()
+        font.setPointSize(12)
+        font.setBold(True)
+        font.setWeight(75)
+        self.label.setFont(font)
+        self.label.setObjectName("label")
+        self.formLayout.setWidget(0, QFormLayout.LabelRole, self.label)
+        self.spinBox = QSpinBox(self.formLayoutWidget)
+        self.spinBox.setMinimum(5)
+        self.spinBox.setMaximum(250)
+        self.spinBox.setObjectName("spinBox")
+        self.formLayout.setWidget(0, QFormLayout.FieldRole, self.spinBox)
+        self.pushButton_OK = QPushButton(self.formLayoutWidget)
+        self.pushButton_OK.setObjectName("pushButton_OK")
+        self.formLayout.setWidget(1, QFormLayout.SpanningRole, self.pushButton_OK)
+
+        self.retranslateUi(New_PortCOM_Window)
+        QMetaObject.connectSlotsByName(New_PortCOM_Window)
+
+    def retranslateUi(self, New_PortCOM_Window):
+        _translate = QCoreApplication.translate
+        New_PortCOM_Window.setWindowTitle(_translate("New_PortCOM_Window", "New Port COM"))
+        self.label.setText(_translate("New_PortCOM_Window", "  NEW PORT COM:"))
+        self.pushButton_OK.setText(_translate("New_PortCOM_Window", "OK"))
+
+
+class Ui_New_Baudrate_Window(QDialog):
+    sig_Change_Baudrate = pyqtSignal(int)
+
+    def __init__(self, parent=None):
+        super(Ui_New_Baudrate_Window, self).__init__(parent)
+        self.setupUi(self)
+
+    def Get_New_Value(self, value):
+        self.sig_Change_Baudrate.emit(int(value))
+        print(int(value))
+        self.close()
+
+    def setupUi(self, New_Baudrate_Window):
+        New_Baudrate_Window.setObjectName("New_FPTV_value_Window")
+        New_Baudrate_Window.resize(430, 60)
+        sizePolicy = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(New_Baudrate_Window.sizePolicy().hasHeightForWidth())
+        New_Baudrate_Window.setSizePolicy(sizePolicy)
+        self.formLayoutWidget = QWidget(New_Baudrate_Window)
+        self.formLayoutWidget.setGeometry(QRect(0, 10, 410, 50))
+        self.formLayoutWidget.setObjectName("formLayoutWidget")
+        self.formLayout = QFormLayout(self.formLayoutWidget)
+        self.formLayout.setContentsMargins(0, 0, 0, 0)
+        self.formLayout.setObjectName("formLayout")
+        self.label = QLabel(self.formLayoutWidget)
+        font = QFont()
+        font.setPointSize(12)
+        font.setBold(True)
+        font.setWeight(75)
+        self.label.setFont(font)
+        self.label.setObjectName("label")
+        self.formLayout.setWidget(0, QFormLayout.LabelRole, self.label)
+        # self.pushButton_OK = QPushButton(self.formLayoutWidget)
+        # self.pushButton_OK.setObjectName("pushButton_OK")
+        # self.formLayout.setWidget(1, QFormLayout.SpanningRole, self.pushButton_OK)
+        self.comboBox = QComboBox(self.formLayoutWidget)
+        self.comboBox.activated[str].connect(self.Get_New_Value)
+        self.comboBox.setObjectName("comboBox")
+        self.comboBox.addItem("")
+        self.comboBox.addItem("")
+        self.comboBox.addItem("")
+        self.comboBox.addItem("")
+        self.comboBox.addItem("")
+        self.comboBox.addItem("")
+        self.comboBox.addItem("")
+        self.comboBox.addItem("")
+        self.comboBox.addItem("")
+        self.comboBox.addItem("")
+        self.comboBox.addItem("")
+        self.comboBox.addItem("")
+        self.comboBox.addItem("")
+        self.comboBox.addItem("")
+        self.comboBox.addItem("")
+        self.formLayout.setWidget(0, QFormLayout.FieldRole, self.comboBox)
+
+        self.retranslateUi(New_Baudrate_Window)
+        QMetaObject.connectSlotsByName(New_Baudrate_Window)
+
+    def retranslateUi(self, New_Baudrate_Window):
+        _translate = QCoreApplication.translate
+        New_Baudrate_Window.setWindowTitle(_translate("New_Baudrate_Window", "New FPTV"))
+        self.label.setText(_translate("New_Baudrate_Window", "BAUDRATE:"))
+        # self.pushButton_OK.setText(_translate("New_Baudrate_Window", "OK"))
+        self.comboBox.setItemText(0, _translate("New_Baudrate_Window", "300"))
+        self.comboBox.setItemText(1, _translate("New_Baudrate_Window", "1200"))
+        self.comboBox.setItemText(2, _translate("New_Baudrate_Window", "2400"))
+        self.comboBox.setItemText(3, _translate("New_Baudrate_Window", "4800"))
+        self.comboBox.setItemText(4, _translate("New_Baudrate_Window", "9600"))
+        self.comboBox.setItemText(5, _translate("New_Baudrate_Window", "19200"))
+        self.comboBox.setItemText(6, _translate("New_Baudrate_Window", "38400"))
+        self.comboBox.setItemText(7, _translate("New_Baudrate_Window", "57600"))
+        self.comboBox.setItemText(8, _translate("New_Baudrate_Window", "74880"))
+        self.comboBox.setItemText(9, _translate("New_Baudrate_Window", "115200"))
+        self.comboBox.setItemText(10, _translate("New_Baudrate_Window", "230400"))
+        self.comboBox.setItemText(11, _translate("New_Baudrate_Window", "250000"))
+        self.comboBox.setItemText(12, _translate("New_Baudrate_Window", "500000"))
+        self.comboBox.setItemText(13, _translate("New_Baudrate_Window", "1000000"))
+        self.comboBox.setItemText(14, _translate("New_Baudrate_Window", "2000000"))
+
+
+class Ui_Help(QDialog):
+    def __init__(self, parent=None):
+        super(Ui_Help, self).__init__(parent)
+        self.setupUi(self)
+
+    def setupUi(self, Help):
+        Help.setObjectName("Help")
+        Help.resize(511, 342)
+        self.label = QLabel(Help)
+        self.label.setGeometry(QRect(10, 10, 491, 41))
+        font = QFont()
+        font.setPointSize(14)
+        font.setBold(True)
+        font.setWeight(75)
+        self.label.setFont(font)
+        self.label.setObjectName("label")
+        self.label_2 = QLabel(Help)
+        self.label_2.setGeometry(QRect(10, 50, 491, 41))
+        font = QFont()
+        font.setPointSize(14)
+        font.setBold(True)
+        font.setWeight(75)
+        self.label_2.setFont(font)
+        self.label_2.setObjectName("label_2")
+        self.label_3 = QLabel(Help)
+        self.label_3.setGeometry(QRect(30, 100, 461, 101))
+        font = QFont()
+        font.setPointSize(10)
+        self.label_3.setFont(font)
+        self.label_3.setAlignment(Qt.AlignCenter)
+        self.label_3.setWordWrap(True)
+        self.label_3.setObjectName("label_3")
+        self.verticalLayoutWidget = QWidget(Help)
+        self.verticalLayoutWidget.setGeometry(QRect(10, 220, 491, 107))
+        self.verticalLayoutWidget.setObjectName("verticalLayoutWidget")
+        self.verticalLayout = QVBoxLayout(self.verticalLayoutWidget)
+        self.verticalLayout.setContentsMargins(0, 0, 0, 0)
+        self.verticalLayout.setObjectName("verticalLayout")
+        self.label_4 = QLabel(self.verticalLayoutWidget)
+        font = QFont()
+        font.setPointSize(10)
+        self.label_4.setFont(font)
+        self.label_4.setObjectName("label_4")
+        self.verticalLayout.addWidget(self.label_4)
+        self.label_5 = QLabel(self.verticalLayoutWidget)
+        font = QFont()
+        font.setPointSize(10)
+        self.label_5.setFont(font)
+        self.label_5.setObjectName("label_5")
+        self.verticalLayout.addWidget(self.label_5)
+        self.label_6 = QLabel(self.verticalLayoutWidget)
+        font = QFont()
+        font.setPointSize(10)
+        self.label_6.setFont(font)
+        self.label_6.setObjectName("label_6")
+        self.verticalLayout.addWidget(self.label_6)
+        self.label_7 = QLabel(self.verticalLayoutWidget)
+        font = QFont()
+        font.setPointSize(10)
+        self.label_7.setFont(font)
+        self.label_7.setObjectName("label_7")
+        self.verticalLayout.addWidget(self.label_7)
+
+        self.retranslateUi(Help)
+        QMetaObject.connectSlotsByName(Help)
+
+    def retranslateUi(self, Help):
+        _translate = QCoreApplication.translate
+        Help.setWindowTitle(_translate("Help", "Dialog"))
+        self.label.setText(_translate("Help", "Welcome to Automatic Palletising System"))
+        self.label_2.setText(_translate("Help", "Author: Kamil Goś"))
+        self.label_3.setText(_translate("Help", "The system is used for automatic palletizing in the warehouse space. To start the palletizing process enter in the upper right corner the identifier of the robot and the pallet to be transported to the storage place. Then just press the GO button."))
+        self.label_4.setText(_translate("Help", "View 1 - real view from camera"))
+        self.label_5.setText(_translate("Help", "View 2 - view with superimposed ArUco codes"))
+        self.label_6.setText(_translate("Help", "View 3 - view with overlaid route (only during proces)"))
+        self.label_7.setText(_translate("Help", "FPTV   - path density factor"))
+
 
 
 if __name__ == "__main__":

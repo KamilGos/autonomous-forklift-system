@@ -5,10 +5,10 @@ from scipy.spatial import distance
 import math
 import copy
 print("Starting algorithm")
-left = 60
-right = 580
-top = 50
-bottom = 430
+left = 0
+right = 648
+top = 0
+bottom = 480
 height = bottom - top
 width =  right  - left
 SKALA = 2.23 #mm
@@ -128,7 +128,7 @@ while True:
     frame = frame[top:bottom, left:right]
 
     corners, ids, rejectedImgPoints = aruco.detectMarkers(frame, aruco_dict, parameters=parameters)
-
+    corners_cp = copy.deepcopy(corners)
     if np.all(ids != None):
         ids_copy = ids.copy()
 
@@ -140,10 +140,13 @@ while True:
             idx = ids.index([0])
             new_corners = np.array(Delete_Perspective_ArUcos(dict[str('0')]))
             corners[idx][0] = new_corners
+            for point in new_corners:
+                cv2.circle(frame, tuple(point), 2, (255, 255, 255), 2)
         frame = aruco.drawDetectedMarkers(frame, corners, ids_copy)
+        # for point in corners_cp[0][0]:
+        #     cv2.circle(frame, tuple(point), 2, (255, 255, 255), 2)
 
-        for point in new_corners:
-            cv2.circle(frame, tuple(point), 2, (255,255,255), 2)
+
 
 
     #
