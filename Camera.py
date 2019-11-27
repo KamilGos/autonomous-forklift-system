@@ -28,18 +28,22 @@ class Camera:
         self.aruco_parameters.adaptiveThreshConstant = 7
         self.aruco_parameters.polygonalApproxAccuracyRate = 0.03
         self.aruco_parameters.minMarkerPerimeterRate = 0.04
-        self.MARKERS_VAL = 4+1
+        self.MARKERS_VAL = 1+1
+        self.DONE_MARKERS = 0
         # self.Warehouse_corners = np.array([[[366,0],[450,0],[450,88],[366,88]]])
-        self.Warehouse_corners = np.array([[[400,85],[430,85],[430,115],[400,115]]])
-        self.pts1 = np.float32([[30, 26], [485, 27], [485, 343], [24, 345]])
+        self.Warehouse_corners = np.array([[[350,85],[380,85],[380,115],[350,115]]])
+        self.Warehouse_place = np.array([[[420,80],[460,80],[460,120],[420,120]]])
+        self.pts1 = np.float32([[33, 23], [485, 24], [485, 337], [27, 340]])
         self.pts2 = np.float32([[0, 0], [455,0], [455, 316], [0, 316]])
         self.TransformMatrix=cv2.getPerspectiveTransform(self.pts1, self.pts2)
         self.SKALA = 2.23  # mm
         self.CAMERA_HEIGHT = 1530  # mm
-        self.ROBOT_HEIGHT = 167  # mm
+        self.ROBOT_HEIGHT = 150 # mm
         self.map_center = (int(self.bigwidth / 2), int(self.bigheight / 2))
         print(self.map_center)
         self.Calculations = Calculations.Calculations()
+        self.Warehouse_place_center = self.Calculations.Get_Centers_Of_Corners(self.Warehouse_place)[0]
+
         self.callibration_matrix = np.array([[733.65108925, 0, 341.18570973],
                         [0, 733.86740229, 229.70186298],
                         [0, 0, 1.]])
@@ -79,14 +83,17 @@ class Camera:
 
     def get_frame_while(self):
         ids_number = 0
-        while ids_number != self.MARKERS_VAL:
-            self.frame = self.get_frame()  # pobieram ramki dopóki nie znajdzie wszystkich aruco
-            corners, ids = self.Detect_Markers(self.frame)
-            if np.all(ids != None):
-                ids_number = len(ids)
-                if ids_number != self.MARKERS_VAL: print("No enough markers. Is: ", ids_number, "  SB: ", self.MARKERS_VAL)
+        try:
+            while ids_number < (self.MARKERS_VAL-self.DONE_MARKERS):
+                self.frame = self.get_frame()  # pobieram ramki dopóki nie znajdzie wszystkich aruco
+                corners, ids = self.Detect_Markers(self.frame)
+                if np.all(ids != None):
+                    ids_number = len(ids)
+                    if ids_number < self.MARKERS_VAL: print("No enough markers. Is: ", ids_number, "  SB: ", self.MARKERS_VAL)
 
-        return self.frame, corners, ids
+            return self.frame, corners, ids
+        except:
+            print("get frame while error")
 
     def Detect_Markers(self, frame):
         corners, ids, _ = aruco.detectMarkers(frame, self.aruco_dict, parameters=self.aruco_parameters)
@@ -105,8 +112,14 @@ class Camera:
 
         corners.append(self.Warehouse_corners)
         ids = np.append(ids, [26])
-        for point in self.Warehouse_corners[0]:
-            cv2.circle(self.frame, tuple(point), 2, (252, 223, 3), 2)
+        for point in self.Warehouse_place[0]:
+            cv2.circle(self.frame, tuple(point), 1, (252, 223, 3), 2)
+        for i in range(0,3):
+            cv2.rectangle(self.frame, tuple(self.Warehouse_place[0][i]), tuple(self.Warehouse_place[0][i+1]),(255,255,255),1)
+        cv2.rectangle(self.frame, tuple(self.Warehouse_place[0][0]), tuple(self.Warehouse_place[0][3]),
+                      (255, 255, 255), 1)
+        cv2.circle(self.frame, tuple(self.Warehouse_place_center), 3, (0,0,0), 3)
+
         return corners, ids
 
     def Detect_Markers_Self(self):
@@ -152,50 +165,55 @@ class Camera:
         return frame
 
     def Calculate_Perspective_Error(self, corners):
-        centers = self.Calculations.Get_Centers_Of_Corners([corners])
-        dist = int(distance.euclidean(self.map_center, centers[0]))
-        real_dist = dist * self.SKALA
-        diff = (real_dist * self.ROBOT_HEIGHT) / self.CAMERA_HEIGHT
-        diff = diff / self.SKALA
-        return diff, centers[0]
+        try:
+            centers = self.Calculations.Get_Centers_Of_Corners([corners])
+            dist = int(distance.euclidean(self.map_center, centers[0]))
+            real_dist = dist * self.SKALA
+            diff = (real_dist * self.ROBOT_HEIGHT) / self.CAMERA_HEIGHT
+            diff = diff / self.SKALA
+            return diff, centers[0]
+        except:
+            print("calculate perspective error")
 
     def Delete_Perspective_ArUcos(self, corners):
-        error, center = self.Calculate_Perspective_Error(corners)
-        alpha_angle = self.Calculations.Determine_Angle_XY((center[0] - self.map_center[0]), (center[1] - self.map_center[1]))
-        if alpha_angle >= 0 and alpha_angle < 90:  # I ćwiartka
-            beta_angle = 90 - alpha_angle
-            # print("I")
-        elif alpha_angle >= 90 and alpha_angle < 180:  # II ćwiartka
-            beta_angle = alpha_angle - 90
-            # print("II")
-        elif alpha_angle >= 180 and alpha_angle < 270:  # 3 ćwiartka
-            beta_angle = 270 - alpha_angle
-            # print("III")
-        elif alpha_angle >= 270 and alpha_angle <= 360:  # IV ćwiartka
-            beta_angle = alpha_angle - 270
-            # print("IV")
-
-        X = int(error * math.sin(math.radians(beta_angle)))
-        Y = int(error * math.cos(math.radians(beta_angle)))
-        #print("X,Y:", X,Y)
-
-        new_corners = []
-        for point in corners:
-            # print(point[0], point[1])
-            if   point[0] >= self.map_center[0] and point[1] <= self.map_center[1]:  # I ćwiartka
-                new_corners.append([int(point[0] - X), int(point[1] + Y)])
-                #print("I")
-            elif point[0] <= self.map_center[0] and point[1] <= self.map_center[1]:  # II ćwiartka
-                new_corners.append([int(point[0] + X), int(point[1] + Y)])
-                #print("II")
-            elif point[0] <= self.map_center[0] and point[1] >= self.map_center[1]:  # III ćwiartka
-                new_corners.append([int(point[0] + X), int(point[1] - Y)])
-                #print("III")
-            elif point[0] >= self.map_center[0] and point[1] >= self.map_center[1]:  # IV ćwiartka
-                new_corners.append([int(point[0] - X), int(point[1] - Y)])
+        try:
+            error, center = self.Calculate_Perspective_Error(corners)
+            alpha_angle = self.Calculations.Determine_Angle_XY((center[0] - self.map_center[0]), (center[1] - self.map_center[1]))
+            if alpha_angle >= 0 and alpha_angle < 90:  # I ćwiartka
+                beta_angle = 90 - alpha_angle
+                # print("I")
+            elif alpha_angle >= 90 and alpha_angle < 180:  # II ćwiartka
+                beta_angle = alpha_angle - 90
+                # print("II")
+            elif alpha_angle >= 180 and alpha_angle < 270:  # 3 ćwiartka
+                beta_angle = 270 - alpha_angle
+                # print("III")
+            elif alpha_angle >= 270 and alpha_angle <= 360:  # IV ćwiartka
+                beta_angle = alpha_angle - 270
                 # print("IV")
-        return new_corners
 
+            X = int(error * math.sin(math.radians(beta_angle)))
+            Y = int(error * math.cos(math.radians(beta_angle)))
+            #print("X,Y:", X,Y)
+
+            new_corners = []
+            for point in corners:
+                # print(point[0], point[1])
+                if   point[0] >= self.map_center[0] and point[1] <= self.map_center[1]:  # I ćwiartka
+                    new_corners.append([int(point[0] - X), int(point[1] + Y)])
+                    #print("I")
+                elif point[0] <= self.map_center[0] and point[1] <= self.map_center[1]:  # II ćwiartka
+                    new_corners.append([int(point[0] + X), int(point[1] + Y)])
+                    #print("II")
+                elif point[0] <= self.map_center[0] and point[1] >= self.map_center[1]:  # III ćwiartka
+                    new_corners.append([int(point[0] + X), int(point[1] - Y)])
+                    #print("III")
+                elif point[0] >= self.map_center[0] and point[1] >= self.map_center[1]:  # IV ćwiartka
+                    new_corners.append([int(point[0] - X), int(point[1] - Y)])
+                    # print("IV")
+            return new_corners
+        except:
+            print("delete perspective error")
     def __str__(self):
         return  "OpenCV Camera {}".format(self.cam_num)
 

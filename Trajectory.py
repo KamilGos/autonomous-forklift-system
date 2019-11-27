@@ -11,7 +11,7 @@ import Dijkstra_heap
 class Trajectory:
     def __init__(self, FPTV_FACTOR, frame_width, frame_height, Calculations_class):
         print("Tworzę klasę Trajectory")
-        self.SAFE_AREA = 20
+        self.SAFE_AREA = 1
         self.last_shortest_path_COOR = None
         self.frame_width = frame_width
         self.frame_height = frame_height

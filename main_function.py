@@ -1,16 +1,13 @@
-from PyQt5.QtCore import Qt, QThread, QTimer, QRect, QMetaObject, QCoreApplication, pyqtSignal
-from PyQt5.QtWidgets import QMainWindow, QApplication, QLabel, QSizePolicy, QMessageBox
-from PyQt5.QtGui import QImage, QColor
-from pyqtgraph import ImageView
+from PyQt5.QtCore import Qt, QThread, pyqtSignal
+from PyQt5.QtWidgets import QMainWindow, QApplication, QMessageBox
+from PyQt5.QtGui import  QColor
 import numpy as np
 import cv2
-import cv2.aruco as aruco
 from views import Ui_MainWindow, Ui_New_FPTV_value_Window, Ui_New_PortCOM_Window,Ui_New_Baudrate_Window, Ui_Help
 
 import Camera
 import Guide
 import Warehouse
-
 
 class Main_function(QMainWindow, Ui_MainWindow):
     sig2 = pyqtSignal(object)
@@ -38,7 +35,7 @@ class Main_function(QMainWindow, Ui_MainWindow):
         self.camera = Camera.Camera(1)
         self.camera.Initialize()
         self.Warehouse=Warehouse.Warehouse()
-        self.Warehouse_level = 0
+        self.Warehouse_level = 1
         self.tableWidget.item(0,1).setBackground(QColor(169,245,169))
         self.tableWidget.item(0, 1).setText("OK")
         self.tableWidget2.item(0, 1).setText("1")
@@ -68,29 +65,18 @@ class Main_function(QMainWindow, Ui_MainWindow):
         self.actionChange_Baudrate.triggered.connect(self.ACTION_Change_Baudrate)
         self.actionHelp.triggered.connect(self.ACTION_Show_HELP)
 
-
     def Start_frame(self):
         if self.camera.initialized:
-            # self.camera.get_frame()
-            # corners, ids = self.camera.Detect_Markers(self.camera.frame)
             _, corners, ids = self.camera.get_frame_while()
             if np.all(ids != None):
                 self.markers_number = len(ids)
                 self.FIRST_IDS = ids
                 print(self.FIRST_IDS)
                 self.camera.frame= self.camera.Print_Detected_Markers(self.camera.frame, corners, ids)
-
-                # cv2.circle(self.camera.frame, (366,0), 2, (252, 223, 3), 2)
-                # cv2.circle(self.camera.frame, (450, 0), 2, (252, 223, 3), 2)
-                # cv2.circle(self.camera.frame, (450,88), 2, (252, 223, 3), 2)
-                # cv2.circle(self.camera.frame, (366,88), 2, (252, 223, 3), 2)
-
                 self.update_View(self.camera.frame)
             else:
                 cv2.putText(self.camera.frame, "!No Markers Detected!", (70,70), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255),2)
                 self.update_View(self.camera.frame)
-
-            # self.camera.close_camera()
 
     def update_View(self, frame):
         self.image_view.view.invertX(True)
@@ -98,7 +84,6 @@ class Main_function(QMainWindow, Ui_MainWindow):
 
     def start_View1(self):
         if self.ViewisRunning == False:
-            # if self.camera.initialized == False: self.camera.Initialize()
             if self.camera.initialized == True:
                 if self.PalletizationisRunning:  self.PalletizaionThread.VIEW_IS_RUNNING = True
                 self.View1Thread = Camera.VideoStreem_View1_Thread(self.camera)
@@ -107,52 +92,37 @@ class Main_function(QMainWindow, Ui_MainWindow):
                 self.pushButton_View1.setStyleSheet("background-color: #A9F5A9")
                 self.pushButton_View2.setEnabled(False)
                 self.pushButton_View3.setEnabled(False)
-                # self.pushButton_View4.setEnabled(False)
-                # self.pushButton_View5.setEnabled(False)
                 self.View1Thread.start()
                 self.View1Thread.sig_View1_Thread_frame.connect(self.update_View)
         else:
             self.View1Thread.runperm = False
             self.ViewisRunning = False
             if self.PalletizationisRunning:  self.PalletizaionThread.VIEW_IS_RUNNING = False
-            #self.camera.close_camera()
-            #self.camera.initialized = False
             self.pushButton_View1.setText("View 1")
             self.pushButton_View1.setStyleSheet("background-color: DEFAULT <later on>")
             self.pushButton_View2.setEnabled(True)
             self.pushButton_View3.setEnabled(True)
-            # self.pushButton_View4.setEnabled(True)
-            # self.pushButton_View5.setEnabled(True)
 
     def start_View2(self):
         if self.ViewisRunning == False:
-            # if self.camera.initialized == False: self.camera.Initialize()
             if self.camera.initialized == True:
                 if self.PalletizationisRunning:  self.PalletizaionThread.VIEW_IS_RUNNING = True
-
                 self.View2Thread = Camera.VideoStreem_View2_Thread(self.camera)
                 self.ViewisRunning = True
                 self.pushButton_View2.setText("View 2 - Running")
                 self.pushButton_View2.setStyleSheet("background-color: #A9F5A9")
                 self.pushButton_View1.setEnabled(False)
                 self.pushButton_View3.setEnabled(False)
-                # self.pushButton_View4.setEnabled(False)
-                # self.pushButton_View5.setEnabled(False)
                 self.View2Thread.start()
                 self.View2Thread.sig_View2_Thread_frame.connect(self.update_View)
         else:
             self.View2Thread.runperm = False
             self.ViewisRunning = False
             if self.PalletizationisRunning:  self.PalletizaionThread.VIEW_IS_RUNNING = False
-
-            #self.camera.close_camera()
-            #self.camera.initialized = False
             self.pushButton_View2.setText("View 2")
             self.pushButton_View2.setStyleSheet("background-color: DEFAULT <later on>")
             self.pushButton_View1.setEnabled(True)
             self.pushButton_View3.setEnabled(True)
-            # self.pushButton_View4.setEnabled(True)
-            # self.pushButton_View5.setEnabled(True)
 
     def Select_Robot_Id(self):
         if self.robot_id_selected == False:
@@ -245,7 +215,7 @@ class Main_function(QMainWindow, Ui_MainWindow):
                     return 0
             print("Wywołuję wątek")
 
-            self.PalletizaionThread = Guide.Guide_Thread(self.camera, self.guide, self.id_robot, self.id_pallet, 30, 3, self.ViewisRunning)
+            self.PalletizaionThread = Guide.Guide_Thread(self.camera, self.guide, self.id_robot, self.id_pallet, 30, 2,self.Warehouse_level, self.ViewisRunning)
             self.PalletizaionThread.setPriority(QThread.HighestPriority)
             self.PalletizationisRunning = True
             self.PalletizaionThread.start()
@@ -258,8 +228,9 @@ class Main_function(QMainWindow, Ui_MainWindow):
             self.PalletizaionThread.sig_Guide_Thread_Errors.connect(self.UpdateErrors)
             self.PalletizaionThread.sig_Guide_Thread_Error_STOP.connect(self.Error_STOP)
             self.PalletizaionThread.sig_Guide_Thread_Update_Warehouse.connect(self.Update_Warehouse)
+            self.PalletizaionThread.sig_Guide_Thread_Update_Pallet_Level.connect(self.Update_Pallet_Level)
 
-        else: #Ręczne wyłączenie guide
+        else:
             self.PalletizationisRunning = False
             self.PalletizaionThread.runperm = False
             self.PalletizaionThread.DONE_road = []
@@ -319,8 +290,6 @@ class Main_function(QMainWindow, Ui_MainWindow):
         self.tableWidget.item(1, 1).setText("OK")
         self.tableWidget.item(2, 1).setBackground(QColor(169,245,169))
         self.tableWidget.item(2, 1).setText("OK")
-
-        print(ok)
 
     def ACTION_Change_FPTV(self):
         self.FPTV_dialog = Ui_New_FPTV_value_Window(self)
@@ -417,6 +386,9 @@ class Main_function(QMainWindow, Ui_MainWindow):
         self.tableWidget3.item(abs(self.Warehouse.size()-3),1).setText("Pallet "+str(id))
         self.tableWidget3.item(abs(self.Warehouse.size()-3),1).setBackground(QColor(201, 201, 201))
 
+    def Update_Pallet_Level(self, ok):
+        if ok == 1:
+            self.Warehouse_level +=1
 
 if __name__ == '__main__':
     import sys
