@@ -2,24 +2,25 @@ from PyQt5.QtCore import  QThread,  pyqtSignal
 import numpy as np
 import cv2
 import cv2.aruco as aruco
-import Calculations
+import sources.calculations as calculations
 from scipy.spatial import distance
 import math
 
 class Camera:
+    """Handling all operations of the camera
+    """
     def __init__(self, cam_num):
-        print("Tworzę klasę Camera")
         self.cam_num = cam_num
         self.cap = None
         self.frame = np.zeros((1,1))
-        self.bigleft =60 # 85
-        self.bigright = 575#538
-        self.bigtop = 70#86
-        self.bigbottom = 440#403
-        self.smallleft = 30  # 85
-        self.smallright = 484  # 538
-        self.smalltop = 37  # 86
-        self.smallbottom = 355  # 403
+        self.bigleft =60 
+        self.bigright = 575
+        self.bigtop = 70
+        self.bigbottom = 440
+        self.smallleft = 30  
+        self.smallright = 484  
+        self.smalltop = 37  
+        self.smallbottom = 355 
         self.bigheight = self.bigbottom-self.bigtop
         self.bigwidth  = self.bigright-self.bigleft
         self.initialized = False
@@ -30,7 +31,6 @@ class Camera:
         self.aruco_parameters.minMarkerPerimeterRate = 0.04
         self.MARKERS_VAL = 1+1
         self.DONE_MARKERS = 0
-        # self.Warehouse_corners = np.array([[[366,0],[450,0],[450,88],[366,88]]])
         self.Warehouse_corners = np.array([[[350,85],[380,85],[380,115],[350,115]]])
         self.Warehouse_place = np.array([[[420,80],[460,80],[460,120],[420,120]]])
         self.pts1 = np.float32([[33, 23], [485, 24], [485, 337], [27, 340]])
@@ -41,7 +41,7 @@ class Camera:
         self.ROBOT_HEIGHT = 150 # mm
         self.map_center = (int(self.bigwidth / 2), int(self.bigheight / 2))
         print(self.map_center)
-        self.Calculations = Calculations.Calculations()
+        self.Calculations = calculations.Calculations()
         self.Warehouse_place_center = self.Calculations.Get_Centers_Of_Corners(self.Warehouse_place)[0]
 
         self.callibration_matrix = np.array([[733.65108925, 0, 341.18570973],
@@ -72,12 +72,6 @@ class Camera:
 
         self.frame = self.frame[self.bigtop:self.bigbottom, self.bigleft:self.bigright]
         cv2.circle(self.frame, tuple(self.map_center), 3, (255,255,255))
-        # for point in self.pts1:
-        #     cv2.circle(self.frame, tuple(point), 2, (255, 255, 255), 2)
-
-        # self.frame = self.frame[self.smalltop:self.smallbottom, self.smallleft:self.smallright]
-        # self.frame = cv2.warpPerspective(self.frame, self.TransformMatrix, (455,316))
-
         self.frame = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
         return self.frame
 
@@ -219,8 +213,7 @@ class Camera:
 
 
 class VideoStreem_View1_Thread(QThread):
-    """
-    Real, clean view from camera.
+    """Real, clean view from camera.
     """
     sig_View1_Thread_frame = pyqtSignal(object)
 
@@ -236,8 +229,6 @@ class VideoStreem_View1_Thread(QThread):
             self.sig_View1_Thread_frame.emit(self.frame)
             self.msleep(100)
         if self.runperm == False:
-            # self.cam.close_camera()
-            # cv2.destroyAllWindows()
             print("Stop View1Thread")
             self.exit(0)
 
@@ -260,24 +251,8 @@ class VideoStreem_View2_Thread(QThread):
             self.sig_View2_Thread_frame.emit(self.frame)
             self.msleep(100)
         if self.runperm == False:
-            # self.cam.close_camera()
-            # cv2.destroyAllWindows()
             print("Stop View2Thread")
             self.exit(0)
-
-
-# if __name__=="__main__":
-#     CAM=Camera(1)
-#     CAM.Initialize()
-#     while(True):
-#         frame=CAM.get_frame()
-#         corners, ids = CAM.Detect_Markers(frame)
-#         frame=CAM.Print_Detected_Markers(frame, corners, ids)
-#         cv2.imshow("frame", frame)
-#         if cv2.waitKey(1) & 0xFF == ord('q'):
-#             break
-#     CAM.close_camera()
-
 
 
 

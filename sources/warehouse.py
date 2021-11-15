@@ -1,5 +1,3 @@
-
-
 class Warehouse():
     def __init__(self):
         self.stack = []
@@ -19,9 +17,6 @@ class Warehouse():
         print("--TOP--")
         for elem in self.stack[::-1]: print(elem)
         print("-FLOOR-")
-
-
-
 
 
 if __name__=="__main__":

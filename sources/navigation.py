@@ -1,28 +1,31 @@
-import cv2
 from PyQt5.QtCore import  QThread,  pyqtSignal, QTimer
 import numpy as np
-import Trajectory
-import Communication
-import Camera
-import Calculations
-import copy
-import time
+import sources.trajectory_generator as trajectory_generator
+import sources.communication as communication
+import sources.calculations as calculations
 from cv2 import aruco
-class Guide:
+
+class Navigation:
     def __init__(self, camera, FPTV_FACTOR, PORT_COM, BAUDRATE):
-        print("Tworzę klasę Guide")
+        """
+        Args:
+            camera (int): camera descriptor
+            FPTV_FACTOR ([int]): destiny of points
+            PORT_COM ([string]): name of COM port used to communicate with robot
+            BAUDRATE ([int]): COM port baudrate
+        """
         self.guide_ready = False
         self.camera = camera
         print(self.camera.initialized)
-        self.calculation = Calculations.Calculations()
-        self.Trajectory = Trajectory.Trajectory(FPTV_FACTOR, self.camera.bigwidth, self.camera.bigheight, self.calculation)
-        self.communication = Communication.Communication()
+        self.calculation = calculations.Calculations()
+        self.Trajectory = trajectory_generator.Trajectory(FPTV_FACTOR, self.camera.bigwidth, self.camera.bigheight, self.calculation)
+        self.communication = communication.Communication()
         self.communication.Initialize(PORT_COM, BAUDRATE)
         if self.camera.initialized == True and self.communication.initializated == True:
             self.guide_ready = True
             print("Guide is ready")
 
-class Guide_Thread(QThread):
+class Navigatio_Thread(QThread):
     sig_Guide_Thread_Frame_With_Road = pyqtSignal(object)
     sig_Guide_Thread_ProgressBar_MaxValue = pyqtSignal(int)
     sig_Guide_Thread_ProgressBar_NewValue = pyqtSignal(int)
@@ -35,7 +38,7 @@ class Guide_Thread(QThread):
     sig_Guide_Thread_Update_Pallet_Level = pyqtSignal(int)
 
 
-    def __init__(self, camera, guide_class,id_robot, id_pallet, MIN_DISTANCE, MIN_ANGLE,WAREHOUSE_LEVEL, VIEV_IS_RUNNING):
+    def __init__(self, camera, guide_class,id_robot, id_pallet, WAREHOUSE_LEVEL, VIEV_IS_RUNNING):
         QThread.__init__(self)
         self.runperm = True
         self.camera = camera
@@ -55,25 +58,27 @@ class Guide_Thread(QThread):
         self.cpframe = np.zeros((1,1))
         self.point_iterator = 0
         self.timer = QTimer()
-        self.timer.timeout.connect(self.Send_View3_Frame)
+        self.timer.timeout.connect(self.Send_Frame_To_View3)
         self.timer.start(100)
         self.Warehouse_level = WAREHOUSE_LEVEL
         print("Warehouse level=", self.Warehouse_level)
 
     def run(self):
+        """ Start navigation procedure
+        """
         self.sig_Guide_Thread_Initialized.emit(str("OK"))
         print("Start Guide_Thread")
         self.id_aim = self.id_pallet
         self.sig_Guide_Thread_Phase1.emit(1)  # phase 1 running
-        if self.GO_FROM_A_TO_B(self.id_aim, self.id_pallet,0) == False:
+        if self.Go_From_A_To_B(self.id_aim, self.id_pallet,0) == False:
             self.sig_Guide_Thread_Phase1.emit(3)  # phase 1 error
             self.sig_Guide_Thread_Errors.emit(1)
 
-            print("***** TRASA NIEBEZPIECZNA ******")
+            print("***** PATH ID DANGEROUS ******")
             self.exit(0)
             self.sig_Guide_Thread_Error_STOP.emit(0)
 
-        self.CALIBRATE_ROTATION(self.deleted_points[0])
+        self.Calibrate_rotation(self.deleted_points[0])
         self.GuideT.communication.Send_Take_Pallet(1)
         self.camera.DONE_MARKERS = self.camera.DONE_MARKERS + 1
         if self.GuideT.communication.Read_Data_From_Robot()== True:
@@ -84,40 +89,45 @@ class Guide_Thread(QThread):
             self.DONE_road = []
             self.deleted_points = []
             self.shortest_path_coor = []
-            if self.GO_FROM_A_TO_B(self.id_aim, self.id_pallet,1) == False:
+            if self.Go_From_A_To_B(self.id_aim, self.id_pallet,1) == False:
                 self.sig_Guide_Thread_Phase2.emit(3)  # phase 2 error
                 self.sig_Guide_Thread_Errors.emit(1)
 
-                print("***** TRASA NIEBEZPIECZNA ******")
+                print("***** PATH ID DANGEROUS ******")
                 self.exit(0)
                 self.sig_Guide_Thread_Error_STOP.emit(0)
 
-            self.CALIBRATE_ROTATION(self.camera.Warehouse_place_center)
+            self.Calibrate_rotation(self.camera.Warehouse_place_center)
             self.GuideT.communication.Send_Put_Pallet(self.Warehouse_level)
             self.sig_Guide_Thread_Update_Pallet_Level.emit(1)
             if self.GuideT.communication.Read_Data_From_Robot() == True:
                 self.sig_Guide_Thread_Phase2.emit(2)  # phase 2 done
                 self.sig_Guide_Thread_Update_Warehouse.emit(self.id_pallet)
-                print("*** ZAKOŃCZONO PROCES PALETYZACJI ***")
-                print(" *** PALETA ODŁOŻONA NA POZIOM 0 ***")
-                print("  *** ZAMYKAM WĄTEK PALETYZACJI ***")
+                print("*** PALETISATION DONE ***")
+                print(" *** PALLET HAS BEEN PUT ON LEVEL 0 ***")
                 self.DONE_road = []
                 self.deleted_points = []
                 self.shortest_path_coor = []
                 self.sig_Guide_Thread_Error_STOP.emit(0)
 
 
-    def GO_FROM_A_TO_B(self, id_aim, id_pallet, IF_LAST):
+    def Go_From_A_To_B(self, id_aim, id_pallet, IF_LAST):
+        """ Navigate robot from current position to destination
+        Args:
+            id_aim ([int]): id of destination place
+            id_pallet ([int]): id of served pallet 
+            IF_LAST ([bool]): True if this movement if the last one
+        Returns:
+            [bool]: True if navigation procedure has been completed successfully, otherwise False
+        """
         try:
-            print("Rozpoczynam jazdę")
             self.point_iterator = 0
-            frame, corners, ids = self.GET_FRAME()
+            frame, corners, ids = self.Get_Frame_And_Corners_With_Ids()
             try:
                 self.shortest_path_coor, is_safe = self.GuideT.Trajectory.Set_Route_Between_Points(corners, ids, self.id_robot,
                                                                                           id_aim, id_pallet)
-
-            except:
-                print("Błąd wyszukiwania trasy")
+            except Exception as e:
+                print("Path could not be loaded: ", e)
                 return False
 
             if is_safe != True:
@@ -137,103 +147,112 @@ class Guide_Thread(QThread):
                 self.sig_Guide_Thread_Frame_With_Road.emit(
                     self.camera.Print_Full_Road_On_Frame(frame, self.deleted_points, self.shortest_path_coor,
                                                          self.DONE_road))
-            except:
-                print("Błąd 1234")
+            except Exception as e:
+                print("Error during navigation procedure: ", e)
 
             if is_safe == True:
                 for point in self.shortest_path_coor:
                     self.point_iterator += 1
                     print("Iterator:", self.point_iterator)
-                    # print("MAX:", len(self.shortest_path_coor) - last_idx)
                     if IF_LAST == 0:
                         if self.point_iterator == len(self.shortest_path_coor) - last_idx+1: #ostatni punkt
                             self.MIN_DISTANCE=self.MIN_DISTANCE_LAST_CONST
-                            print("Zmieniam minimalny dystans")
+                            print("Minimal distance has been changed")
                     if IF_LAST == 1:
                         if self.point_iterator == len(self.shortest_path_coor): #ostatni punkt
                             self.MIN_DISTANCE=self.MIN_DISTANCE_LAST_CONST
-                            print("Zmieniam minimalny dystans")
+                            print("Minimal distance has been changed")
 
                     self.sig_Guide_Thread_ProgressBar_NewValue.emit((self.point_iterator - 2))
                     NEXT_POINT = False
                     try:
                         while NEXT_POINT == False:
                             try:
-                                frame, corners, ids, corners_ids_dict, Rob_center = self.GET_FRAME_EASY_AND_CREATE_DICT()
+                                frame, corners, ids, corners_ids_dict, Rob_center = self.Get_Frame_And_Dict()
                                 self.DONE_road.append(Rob_center[0])
                                 self.sig_Guide_Thread_Frame_With_Road.emit(
                                     self.camera.Print_Full_Road_On_Frame(frame, self.deleted_points, self.shortest_path_coor,
                                                                          self.DONE_road))
-                            # print("A=", corners_ids_dict[str(self.id_robot)])
-                            # print("B=", point)
                                 distance = self.GuideT.calculation.Calculate_Distance_RA(corners_ids_dict[str(self.id_robot)],
                                                                                      point)
                                 print("Distance = ", distance)
-                            except:
-                                print("Błąd 12336")
+                            except Exception as e:
+                                print("Error during navigation procedure: ", e)
+
                             try:
-                                if distance > self.MIN_DISTANCE:  # Trzeba dojechac do tego punktu (nie pomijamy go)
-                                    print("Za duży dystans")
+                                if distance > self.MIN_DISTANCE:  
+                                    print("Distance is too large")
                                     angle, dir = self.GuideT.calculation.Calculate_Angle_RA(corners_ids_dict[str(self.id_robot)],
                                                                                             point)
-                                    print("Kąt = ", angle)
-                                    while angle > self.MIN_ANGLE and angle < (360 - self.MIN_ANGLE):  # musimy się obrócić
-                                        print("Zły kąt")
+                                    print("Angle = ", angle)
+                                    while angle > self.MIN_ANGLE and angle < (360 - self.MIN_ANGLE): 
+                                        print("Wrong angle")
                                         self.GuideT.communication.Send_Rotate(angle, dir)
                                         try:
                                             if self.GuideT.communication.Read_Data_From_Robot() == True:
-                                                frame, corners, ids, corners_ids_dict, Rob_center = self.GET_FRAME_EASY_AND_CREATE_DICT()
+                                                frame, corners, ids, corners_ids_dict, Rob_center = self.Get_Frame_And_Dict()
                                                 self.DONE_road.append(Rob_center[0])
                                                 self.sig_Guide_Thread_Frame_With_Road.emit(
                                                     self.camera.Print_Full_Road_On_Frame(frame, self.deleted_points, self.shortest_path_coor,
                                                                                      self.DONE_road))
                                                 angle, dir = self.GuideT.calculation.Calculate_Angle_RA(
                                                 corners_ids_dict[str(self.id_robot)], point)
-                                                print("Nowy kąt = ", angle)
-                                        except:
-                                            print("Błąd 174")
-                                    print("Poprawny kąt")
+                                                print("New angle = ", angle)
+                                        except Exception as e:
+                                            print("Error during navigation procedure: ", e)
+
+                                    print("Angle is correct")
                                     self.GuideT.communication.Send_Go_Straight(distance)
                                     try:
                                         ACK = self.GuideT.communication.Read_Data_From_Robot()
-                                    except: print("Błąd 179")
+                                    except Exception as e: 
+                                        print("Error during communication with robot: ", e)
                                     print("I got ACK after Go Straight")
-                                else:  # Dojechał do punktu
-                                    print("Biorę kolejny punkt")
+                                else:  
+                                    print("Taking next point")
                                     NEXT_POINT = True
-                            except: print("Błą 1237")
-                    except: print("Błąd 1235")
+             
+                            except Exception as e:
+                                print("Error during navigation procedure: ", e)
+
+                    except Exception as e:
+                        print("Error during navigation procedure: ", e)
+
             else:
-                print("Trasa niebezpieczna")
+                print("Path is dangerous")
                 return False
-            print("Kończę fazę GUIDE")
+                
+            print("Navigation hass been finished")
             self.MIN_DISTANCE = self.MIN_DISTANCE_CONST
             return True
         except:
-            print("Błąd 7652138")
+            print("Error during navigation procedure: ", e)
 
 
-    def CALIBRATE_ROTATION(self, point):
+    def Calibrate_rotation(self, point):
+        """ Rotate robot to the specified angle
+        Args:
+            point ([type]): next point to be reached by robot
+        Returns:
+            [bool]: True if correct angle has been reached
+        """
         try:
-            print("Rozpoczynam kalibrację kąta")
-            frame, corners, ids, corners_ids_dict, Rob_center = self.GET_FRAME_EASY_AND_CREATE_DICT()
+            _, _, _, corners_ids_dict, _ = self.Get_Frame_And_Dict()
             angle, dir = self.GuideT.calculation.Calculate_Angle_RA(corners_ids_dict[str(self.id_robot)], point)
-            print("Kąt = ", angle)
+            print("Angle = ", angle)
             while angle > 1 and angle < 359:  # musimy się obrócić
-                print("Zły kąt")
+                print("Wrong angle")
                 self.GuideT.communication.Send_Rotate(angle, dir)
-                # time.sleep(1)
                 if self.GuideT.communication.Read_Data_From_Robot() == True:
-                    frame, corners, ids, corners_ids_dict, Rob_center = self.GET_FRAME_EASY_AND_CREATE_DICT()
+                    _, _, _, corners_ids_dict, _ = self.Get_Frame_And_Dict()
                     angle, dir = self.GuideT.calculation.Calculate_Angle_RA(
                         corners_ids_dict[str(self.id_robot)], point)
-                    print("Nowy kąt = ", angle)
-            print("Poprawny kąt. Kończę kalibrację")
+                    print("New angle = ", angle)
             return True
-        except:
-            print("Błąd 123112")
+        except Exception as e:
+            print("Error during rotating robot: ", e)
 
-    def GET_FRAME(self):
+    def Get_Frame_And_Corners_With_Ids(self):
         try:
             if self.VIEW_IS_RUNNING == False:
                 frame, corners, ids = self.camera.get_frame_while()
@@ -241,39 +260,36 @@ class Guide_Thread(QThread):
                 ids = []
                 while len(ids) != self.GuideT.camera.MARKERS_VAL:
                     frame, corners, ids = self.camera.Detect_Markers_Self()
-        except: print("Błąd 123432")
+        except Exception as e:
+            print("Error during aquiring new frame: ", e) 
         return frame, corners, ids
 
 
-    def GET_FRAME_ONLY(self):
+    def Get_Frame(self):
         try:
             frame = self.camera.get_frame()
             corners, ids = self.camera.Detect_Markers(frame)
             frame = aruco.drawDetectedMarkers(frame, corners[:-1], ids[:-1])
             return frame
-        except:
-            print("Błąd 89787")
+        except Exception as e:
+            print("Error during aquiring new frame: ", e) 
 
-    def GET_FRAME_EASY_AND_CREATE_DICT(self):
+
+    def Get_Frame_And_Dict(self):
         try:
-            frame, corners, ids = self.GET_FRAME()
+            frame, corners, ids = self.Get_Frame_And_Corners_With_Ids()
             corners, ids = self.GuideT.calculation.Easy_Corners_And_Ids(corners, ids)
             corners_ids_dict = self.GuideT.calculation.Create_Dictionary_Of_Corners(corners, ids)
             Rob_center = self.GuideT.calculation.Get_Centers_Of_Corners(np.array([corners_ids_dict[str(self.id_robot)]]))
             return frame, corners, ids, corners_ids_dict, Rob_center
-        except:
-            print("Błąd 123456")
+        except Exception as e:
+            print("Error during aquiring new frame: ", e) 
 
-    def Send_View3_Frame(self):
+    def Send_Frame_To_View3(self):
         try:
-            if len(self.shortest_path_coor)>0: #and len(self.deleted_points)>0 and len(self.DONE_road)>0:
+            if len(self.shortest_path_coor)>0:
                 self.cpframe = self.GET_FRAME_ONLY()
                 self.sig_Guide_Thread_Frame_With_Road.emit(
                     self.camera.Print_Full_Road_On_Frame(self.cpframe, self.deleted_points, self.shortest_path_coor, self.DONE_road))
-        except:
-            print("Bład 098765")
-
-if __name__ == "__main__":
-    cam = Camera.Camera(1)
-    Guide = Guide(cam, 25, "COM14", 9600)
-    Guide.Guide_Robot_To_Aim(0,2,30,3)
+        except Exception as e:
+            print("Error during sending frame to View3: ", e) 

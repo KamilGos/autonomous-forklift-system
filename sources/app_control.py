@@ -1,20 +1,20 @@
 from PyQt5.QtCore import Qt, QThread, pyqtSignal
-from PyQt5.QtWidgets import QMainWindow, QApplication, QMessageBox
+from PyQt5.QtWidgets import QMainWindow, QMessageBox
 from PyQt5.QtGui import  QColor
 import numpy as np
 import cv2
-from views import Ui_MainWindow, Ui_New_FPTV_value_Window, Ui_New_PortCOM_Window,Ui_New_Baudrate_Window, Ui_Help
 
-import Camera
-import Guide
-import Warehouse
+from sources.gui import Ui_MainWindow, Ui_New_FPTV_value_Window, Ui_New_PortCOM_Window,Ui_New_Baudrate_Window, Ui_Help
+import sources.camera as camera
+import sources.navigation as navigation
+import sources.warehouse as warehouse
 
-class Main_function(QMainWindow, Ui_MainWindow):
+
+class AppControl(QMainWindow, Ui_MainWindow):
     sig2 = pyqtSignal(object)
 
     def __init__(self):
         super(self.__class__, self).__init__()
-        print("Tworzę Main Function")
         self.setupUi(self)
         self.id_robot = None
         self.robot_id_selected = False
@@ -32,9 +32,9 @@ class Main_function(QMainWindow, Ui_MainWindow):
         self.FIRST_IDS =[]
         self.guideinitialized = False
         self.guide = None
-        self.camera = Camera.Camera(1)
+        self.camera = camera.Camera(1)
         self.camera.Initialize()
-        self.Warehouse=Warehouse.Warehouse()
+        self.Warehouse= warehouse.Warehouse()
         self.Warehouse_level = 1
         self.tableWidget.item(0,1).setBackground(QColor(169,245,169))
         self.tableWidget.item(0, 1).setText("OK")
@@ -86,7 +86,7 @@ class Main_function(QMainWindow, Ui_MainWindow):
         if self.ViewisRunning == False:
             if self.camera.initialized == True:
                 if self.PalletizationisRunning:  self.PalletizaionThread.VIEW_IS_RUNNING = True
-                self.View1Thread = Camera.VideoStreem_View1_Thread(self.camera)
+                self.View1Thread = camera.VideoStreem_View1_Thread(self.camera)
                 self.ViewisRunning = True
                 self.pushButton_View1.setText("View 1 - Running")
                 self.pushButton_View1.setStyleSheet("background-color: #A9F5A9")
@@ -107,7 +107,7 @@ class Main_function(QMainWindow, Ui_MainWindow):
         if self.ViewisRunning == False:
             if self.camera.initialized == True:
                 if self.PalletizationisRunning:  self.PalletizaionThread.VIEW_IS_RUNNING = True
-                self.View2Thread = Camera.VideoStreem_View2_Thread(self.camera)
+                self.View2Thread = camera.VideoStreem_View2_Thread(self.camera)
                 self.ViewisRunning = True
                 self.pushButton_View2.setText("View 2 - Running")
                 self.pushButton_View2.setStyleSheet("background-color: #A9F5A9")
@@ -199,7 +199,7 @@ class Main_function(QMainWindow, Ui_MainWindow):
             self.pushButton_GO.setStyleSheet("background-color: #A9F5A9")
             self.id_aim = self.id_pallet
             if self.guideinitialized == False:
-                self.guide = Guide.Guide(self.camera, self.FPTV, self.PORT, self.BAUDRATE)
+                self.guide = navigation.Navigation(self.camera, self.FPTV, self.PORT, self.BAUDRATE)
                 if self.guide.guide_ready == True:
                     self.guideinitialized = True
                 else:
@@ -215,7 +215,7 @@ class Main_function(QMainWindow, Ui_MainWindow):
                     return 0
             print("Wywołuję wątek")
 
-            self.PalletizaionThread = Guide.Guide_Thread(self.camera, self.guide, self.id_robot, self.id_pallet, 30, 2,self.Warehouse_level, self.ViewisRunning)
+            self.PalletizaionThread = navigation.Guide_Thread(self.camera, self.guide, self.id_robot, self.id_pallet, 30, 2,self.Warehouse_level, self.ViewisRunning)
             self.PalletizaionThread.setPriority(QThread.HighestPriority)
             self.PalletizationisRunning = True
             self.PalletizaionThread.start()
@@ -390,9 +390,3 @@ class Main_function(QMainWindow, Ui_MainWindow):
         if ok == 1:
             self.Warehouse_level +=1
 
-if __name__ == '__main__':
-    import sys
-    app = QApplication(sys.argv)
-    MainWindow = Main_function()
-    MainWindow.show()
-    app.exit(app.exec_())

@@ -1,6 +1,6 @@
-from PyQt5.QtCore import Qt, QThread, QTimer, QRect, QMetaObject, QCoreApplication, pyqtSignal, QTimer, QTime
+from PyQt5.QtCore import Qt, QTimer, QRect, QMetaObject, QCoreApplication, pyqtSignal, QTimer, QTime
 from PyQt5.QtWidgets import QMainWindow, QDialog, QLCDNumber, QWidget,QSpinBox,  QComboBox,QAbstractItemView, QTableWidgetItem, QHeaderView, QLineEdit,QTableWidget, QSpacerItem, QFrame, QProgressBar,  QPushButton,QFormLayout, QVBoxLayout, QApplication, QSlider, QHBoxLayout, QMenuBar, QMenu, QAction, QLabel, QSizePolicy, QTextBrowser
-from PyQt5.QtGui import QImage, QColor, QFont
+from PyQt5.QtGui import QFont
 from pyqtgraph import ImageView
 
 
@@ -28,10 +28,6 @@ class Ui_MainWindow(object):
         self.horizontalLayout_3.addWidget(self.pushButton_View2)
         self.pushButton_View3 = QPushButton("View 3",self.horizontalLayoutWidget)
         self.horizontalLayout_3.addWidget(self.pushButton_View3)
-        # self.pushButton_View4 = QPushButton("View 4", self.horizontalLayoutWidget)
-        # self.horizontalLayout_3.addWidget(self.pushButton_View4)
-        # self.pushButton_View5 = QPushButton("View 5", self.horizontalLayoutWidget)
-        # self.horizontalLayout_3.addWidget(self.pushButton_View5)
         self.verticalLayout2_L.addLayout(self.horizontalLayout_3)
         self.horizontalLayout1.addLayout(self.verticalLayout2_L,2)
         spacerItem = QSpacerItem(10, 0, QSizePolicy.Expanding, QSizePolicy.Minimum)
@@ -40,16 +36,12 @@ class Ui_MainWindow(object):
 
         self.LCDNumber = QLCDNumber(self.horizontalLayoutWidget)
         self.LCDNumber.setSegmentStyle(QLCDNumber.Flat)
-
         self.LCDNumber.setMinimumHeight(60)
         self.timer = QTimer()
         self.timer.timeout.connect(self.ShowTime)
         self.timer.start(1000)
         self.ShowTime()
-
         self.verticalLayout2_P.addWidget(self.LCDNumber)
-
-
         self.formLayout_2PU = QFormLayout()
         self.Enter_robot_id_label = QLabel(self.horizontalLayoutWidget)
         font = QFont()
@@ -84,7 +76,6 @@ class Ui_MainWindow(object):
         self.Select_pallet_id_button.setObjectName("pushButton_4")
         self.formLayout_2PU.setWidget(5, QFormLayout.SpanningRole, self.Select_pallet_id_button)
         self.verticalLayout2_P.addLayout(self.formLayout_2PU)
-
 
         self.Line = QFrame(self.horizontalLayoutWidget)
         self.Line.setFrameShape(QFrame.HLine)
@@ -307,9 +298,6 @@ class Ui_MainWindow(object):
         self.Table1_Title .setText(_translate("MainWindow", "            Module statuses                                Paremeters"))
         self.Table3_Title .setText(_translate("MainWindow", "                 Warehouse"))
 
-        # self.Table2_Title .setText(_translate("MainWindow", "Parameters"))
-
-
 
 class Ui_New_FPTV_value_Window(QDialog):
     sig_Change_FPTV = pyqtSignal(int)
@@ -454,9 +442,6 @@ class Ui_New_Baudrate_Window(QDialog):
         self.label.setFont(font)
         self.label.setObjectName("label")
         self.formLayout.setWidget(0, QFormLayout.LabelRole, self.label)
-        # self.pushButton_OK = QPushButton(self.formLayoutWidget)
-        # self.pushButton_OK.setObjectName("pushButton_OK")
-        # self.formLayout.setWidget(1, QFormLayout.SpanningRole, self.pushButton_OK)
         self.comboBox = QComboBox(self.formLayoutWidget)
         self.comboBox.activated[str].connect(self.Get_New_Value)
         self.comboBox.setObjectName("comboBox")
