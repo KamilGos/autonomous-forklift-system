@@ -15,9 +15,12 @@
 
 
 <p align="center">
-  <a href="#dart-about">About</a> &#xa0; | &#xa0; 
+  <a href="#dart-about">About</a> &#xa0; | &#xa0;
+  <a href="#desktop_computer-GUI">GUI</a> &#xa0; | &#xa0;
+  <a href="#microscope-tests">Tests</a> &#xa0; | &#xa0;
   <a href="#checkered_flag-starting">Starting</a> &#xa0; | &#xa0;
-  <a href="#memo-author">Author</a> &#xa0; | &#xa0;
+  <a href="#memo-license">License</a> &#xa0; | &#xa0;
+  <a href="#technologist-author">Author</a> &#xa0; | &#xa0;
 </p>
 
 <br>
@@ -83,7 +86,7 @@ $ sudo python3 main.py
 
 This project is under license from MIT. For more details, see the [LICENSE](LICENSE.md) file.
 
-## :memo: Author ##
+## :technologist: Author ##
 
 Made with :heart: by <a href="https://github.com/KamilGos" target="_blank">Kamil Goś</a>
 
