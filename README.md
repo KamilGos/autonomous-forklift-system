@@ -16,20 +16,25 @@
 
 <p align="center">
   <a href="#dart-about">About</a> &#xa0; | &#xa0;
-  <a href="#desktop_computer-GUI">GUI</a> &#xa0; | &#xa0;
+  <a href="#computer-gui">GUI</a> &#xa0; | &#xa0;
   <a href="#microscope-tests">Tests</a> &#xa0; | &#xa0;
   <a href="#checkered_flag-starting">Starting</a> &#xa0; | &#xa0;
   <a href="#memo-license">License</a> &#xa0; | &#xa0;
   <a href="#technologist-author">Author</a> &#xa0; | &#xa0;
 </p>
 
+![Movie presenting working system](watch_me_speedx8.mp4)
+
+<video width="320" height="240" controls>
+  <source src="watch_me_speedx8.mp4" type="video/mp4">
+</video>
 <br>
 
 ## :dart: About ##
 
 An application that run the autonomous forklift paletization aglorithms. Projekt was created for Engineering Thesis. It was fully completed. The last release of this application is available in this repository. Alication uses image processing (OpenCV library) to detect the position of Acuco markers. Based on the calculated positions of the forklift, pallets and the storage place, the trajectories for the truck are generated (mainly using Voronoi graph and Dijsktra algorithm). Then the module responsible for communication with the robot controls it, so the robot collects choosed pallets and puts them one on top of the other in the designated warehouse. 
 
-## :desktop_computer: GUI ##
+## :computer: GUI ##
 The interface was created using the PyQt5 and pyqtgraph libraries.The following elements are shown in the figure:
 1. **Menu bar** - user can change the FPTV coefficient, communication port and baudrate.
 2.  **Image transmission** - user can choose between three views. The first view displays the real image from the camera. View 2 displays
