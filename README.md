@@ -4,8 +4,8 @@
   &#xa0;
 </div>
 
-<h1 align="center"> Autonomous-Forklift-System
- </h1>
+<h1 align="center"> autonomous-forklift-system</h1>
+<h2 align="center"> Position detection system of mobile robot in the warehouse enviroment </h2>
 
 <p align="center">
   <img alt="Top language" src="https://img.shields.io/badge/Language-Python-green?style=for-the-badge&logo=appveyor">
@@ -29,6 +29,8 @@
   <source src="watch_me_speedx8.mp4" type="video/mp4">
 </video>
 <br>
+
+[<img src="https://img.youtube.com/vi/S6ORzaMVIf4/maxresdefault.jpg" width="50%">](https://youtu.be/S6ORzaMVIf4)
 
 ## :dart: About ##
 
@@ -78,10 +80,10 @@ safety assumptions for every traffic. **Result: Correct**
 
 ```bash
 # Clone this project
-$ git clone https://github.com/KamilGos/Autonomous_Forklift_System
+$ git clone https://github.com/KamilGos/autonomous-forklift-system
 
 # Access
-$ cd Autonomous_Forklift_System
+$ cd autonomous-forklift-system
 
 # Run the project
 $ sudo python3 main.py
