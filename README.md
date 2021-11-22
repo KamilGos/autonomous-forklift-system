@@ -23,6 +23,9 @@
   <a href="#technologist-author">Author</a> &#xa0; | &#xa0;
 </p>
 
+<center>
+  <h3>Wath the video presenting system by clicking on this picture:</h3>
+</center>
 
 [![Watch the video](images/video.png)](https://youtu.be/S6ORzaMVIf4)
 
