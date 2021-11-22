@@ -1,8 +1,8 @@
-
 <div align="center" id="top"> 
-  <img src=images/MainwindowGUI.png  alt="MainwindowGUI" />
+  <img src=images/watch_me_speed_x8.gif  width=600" />
   &#xa0;
 </div>
+
 
 <h1 align="center"> autonomous-forklift-system</h1>
 <h2 align="center"> Position detection system of mobile robot in the warehouse enviroment </h2>
@@ -23,18 +23,31 @@
   <a href="#technologist-author">Author</a> &#xa0; | &#xa0;
 </p>
 
+<br>
+
+---
+
 <center>
-  <h3>Wath the video presenting system by clicking on this picture:</h3>
+
+You can wath the oryginal video presenting system by clicking 
+[here](https://youtu.be/S6ORzaMVIf4)
+
 </center>
 
-[![Watch the video](images/video.png)](https://youtu.be/S6ORzaMVIf4)
 
+---
+
+<br>
 
 ## :dart: About ##
 
 An application that run the autonomous forklift paletization aglorithms. Projekt was created for Engineering Thesis. It was fully completed. The last release of this application is available in this repository. Alication uses image processing (OpenCV library) to detect the position of Acuco markers. Based on the calculated positions of the forklift, pallets and the storage place, the trajectories for the truck are generated (mainly using Voronoi graph and Dijsktra algorithm). Then the module responsible for communication with the robot controls it, so the robot collects choosed pallets and puts them one on top of the other in the designated warehouse. 
 
 ## :computer: GUI ##
+<div align="center" id="top"> 
+  <img src=images/MainwindowGUI.png  width=600" />
+  &#xa0;
+</div>
 The interface was created using the PyQt5 and pyqtgraph libraries.The following elements are shown in the figure:
 1. **Menu bar** - user can change the FPTV coefficient, communication port and baudrate.
 2.  **Image transmission** - user can choose between three views. The first view displays the real image from the camera. View 2 displays
