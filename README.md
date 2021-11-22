@@ -23,14 +23,9 @@
   <a href="#technologist-author">Author</a> &#xa0; | &#xa0;
 </p>
 
-![Movie presenting working system](watch_me_speedx8.mp4)
 
-<video width="320" height="240" controls>
-  <source src="watch_me_speedx8.mp4" type="video/mp4">
-</video>
-<br>
+[![Watch the video](images/video.png)](https://youtu.be/S6ORzaMVIf4)
 
-[<img src="https://img.youtube.com/vi/S6ORzaMVIf4/maxresdefault.jpg" width="50%">](https://youtu.be/S6ORzaMVIf4)
 
 ## :dart: About ##
 
