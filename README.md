@@ -41,7 +41,7 @@ You can wath the oryginal video presenting system by clicking
 
 ## :dart: About ##
 
-An application that runs the autonomous forklift palletization algorithms. Projekt was created for Engineering Thesis. It was fully completed. The last release of this application is available in this repository. Application uses image processing (OpenCV library) to detect the position of Acuco markers. Based on the calculated positions of the forklift, pallets and the storage place, the trajectories for the truck are generated (mainly using Voronoi graph and Dijkstra algorithm). Then the module responsible for communication with the robot controls it, so the robot collects chosen pallets and puts them one on top of the other in the designated warehouse.
+An application that runs the autonomous forklift palletization algorithms. Projekt was created for Engineering Thesis. It was fully completed. The last release of this application is available in this repository. The application uses image processing (OpenCV library) to detect the position of Acuco markers. Based on the calculated positions of the forklift, pallets and the storage place, the trajectories for the truck are generated (mainly using Voronoi graph and Dijkstra algorithm). Then the module responsible for communication with the robot controls it, so the robot collects chosen pallets and puts them one on top of the other in the designated warehouse.
 
 ## :computer: GUI ##
 <div align="center" id="top"> 
